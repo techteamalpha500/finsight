@@ -3,22 +3,18 @@ import React, { useMemo, useState } from "react";
 
 import type { AssetClass } from "../../domain/allocationEngine";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Card as PlanCard, CardContent as PlanCardContent, CardHeader as PlanCardHeader, CardTitle as PlanCardTitle } from "../../../components/Card";
 import { Button } from "../../../components/Button";
 import { fetchMutualFundSchemes, searchFundsByName, TransformedFund, saveHolding, fetchUserHoldings, HoldingData, preloadMutualFundData, clearMFCache, deleteHolding, fetchStockCompanies, searchStockCompanies, StockCompany, preloadStockData } from "../../../../lib/dynamodb";
+import ImportStocksModal from "./ImportStocksModal";
+import { type CASData } from "./casParser";
 
 // Asset class colors for charts
 const CLASS_COLORS = {
 	"Stocks": { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300", chart: "#3B82F6" },
-	"Mutual Funds": { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-300", chart: "#10B981" },
 	"Equity MF": { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-300", chart: "#10B981" },
-	"Debt MF": { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", chart: "#8B5CF6" },
-	"Liquid MF": { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300", chart: "#F59E0B" },
-	"Liquid Fund": { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300", chart: "#F59E0B" },
-	"Debt ETF": { bg: "bg-indigo-100 dark:bg-indigo-900/30", text: "text-indigo-700 dark:text-indigo-300", chart: "#6366F1" },
-	"Liquid ETF": { bg: "bg-cyan-100 dark:bg-cyan-900/30", text: "text-cyan-700 dark:text-cyan-300", chart: "#06B6D4" },
 	"ETF": { bg: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-700 dark:text-violet-300", chart: "#8B5CF6" },
 	"Debt": { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", chart: "#8B5CF6" },
 	"Liquid": { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300", chart: "#F59E0B" },
@@ -62,7 +58,7 @@ const ROLE_INSTRUMENT_TYPES = {
 
 // Auto-map instrument type to AssetClass
 function mapInstrumentTypeToAssetClass(instrumentType: string): AssetClass {
-	if (instrumentType.includes("MF")) return "Mutual Funds";
+	if (instrumentType.includes("MF")) return "Equity MF";
 	if (instrumentType.includes("Gold")) return "Gold";
 	if (instrumentType.includes("Real Estate") || instrumentType.includes("REIT") || instrumentType.includes("Property")) return "Real Estate";
 	if (instrumentType.includes("Bond") || instrumentType.includes("Debt")) return "Debt";
@@ -88,7 +84,8 @@ function computeInvestedAmount(holding: HoldingData): number {
 function getRoleForAssetClass(assetClass: AssetClass): 'Equity' | 'Defensive' | 'Satellite' {
 	switch (assetClass) {
 		case 'Stocks':
-		case 'Mutual Funds':
+		case 'Equity MF':
+		case 'ETF':
 			return 'Equity';
 		case 'Debt':
 		case 'Liquid':
@@ -106,6 +103,7 @@ export default function HoldingsPage() {
 	
 	// Modal state
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	
 	// Pagination state
@@ -231,6 +229,7 @@ export default function HoldingsPage() {
 			// Transform DynamoDB holdings to local state format
 			const transformedHoldings = dbHoldings.map(dbHolding => ({
 				id: dbHolding.id,
+				user_id: dbHolding.user_id,
 				instrumentClass: dbHolding.instrumentClass as AssetClass,
 				name: dbHolding.name,
 				symbol: dbHolding.symbol,
@@ -240,7 +239,8 @@ export default function HoldingsPage() {
 				currentValue: dbHolding.currentValue,
 				asset_class: dbHolding.asset_class,
 				portfolio_role: dbHolding.portfolio_role,
-				created_at: dbHolding.created_at // Ensure created_at is included
+				created_at: dbHolding.created_at,
+				updated_at: dbHolding.updated_at
 			}));
 			
 			// Sort by created_at descending (newest first) and set holdings
@@ -312,7 +312,7 @@ export default function HoldingsPage() {
 			const limitedResults = filtered.slice(0, 10);
 			setFilteredMFOptions(limitedResults);
 			// Only show dropdown if there's a search term
-			setShowMFDropdown(term.trim() && limitedResults.length > 0);
+			setShowMFDropdown(!!(term.trim() && limitedResults.length > 0));
 		} catch (error) {
 			// Clear results on error
 			setFilteredMFOptions([]);
@@ -338,7 +338,7 @@ export default function HoldingsPage() {
 			const limitedResults = filtered.slice(0, 10);
 			setFilteredETFOptions(limitedResults);
 			// Only show dropdown if there's a search term
-			setShowETFDropdown(term.trim() && limitedResults.length > 0);
+			setShowETFDropdown(!!(term.trim() && limitedResults.length > 0));
 		} catch (error) {
 			// Clear results on error
 			setFilteredETFOptions([]);
@@ -421,7 +421,7 @@ export default function HoldingsPage() {
 			// Use asset_class from holdings table if available, fallback to instrumentClass
 			const assetClass = holding.asset_class || holding.instrumentClass;
 			// Use portfolio_role from holdings table if available, fallback to calculated role
-			const portfolioRole = holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass);
+			const portfolioRole = holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass as AssetClass);
 			
 			// Enhanced asset class filtering to handle broader categories
 			let matchesAssetClass = true;
@@ -493,8 +493,8 @@ export default function HoldingsPage() {
 	}, [filteredHoldings, sortKey, sortDir]);
 
 	// Calculate totals for KPI cards - using filtered data
-	const totalValue = useMemo(() => (filteredHoldings || []).reduce((s: number, h: Holding) => s + computeHoldingValue(h), 0), [filteredHoldings]);
-	const totalInvested = useMemo(() => (filteredHoldings || []).reduce((s: number, h: Holding) => s + computeInvestedAmount(h), 0), [filteredHoldings]);
+	const totalValue = useMemo(() => (filteredHoldings || []).reduce((s: number, h: HoldingData) => s + computeHoldingValue(h), 0), [filteredHoldings]);
+	const totalInvested = useMemo(() => (filteredHoldings || []).reduce((s: number, h: HoldingData) => s + computeInvestedAmount(h), 0), [filteredHoldings]);
 	const totalPL = useMemo(() => totalValue - totalInvested, [totalValue, totalInvested]);
 	const totalPLPct = useMemo(() => (totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0), [totalPL, totalInvested]);
 
@@ -529,7 +529,7 @@ export default function HoldingsPage() {
 
 		filteredHoldings.forEach(holding => {
 			// Use portfolio_role from holdings table if available, fallback to calculated role
-			const role = holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass);
+			const role = holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass as AssetClass);
 			const currentValue = computeHoldingValue(holding);
 			roleMap.set(role, (roleMap.get(role) || 0) + currentValue);
 		});
@@ -572,7 +572,17 @@ export default function HoldingsPage() {
 	function resetForm() {
 		if (editingId && originalForm) {
 			// If editing, restore original values
-			setForm(originalForm);
+			const formData = {
+				instrumentClass: originalForm.instrumentClass as AssetClass,
+				name: originalForm.name,
+				symbol: originalForm.symbol || "",
+				units: originalForm.units?.toString() || "",
+				price: originalForm.price?.toString() || "",
+				investedAmount: originalForm.investedAmount?.toString() || "",
+				currentValue: originalForm.currentValue?.toString() || "",
+				propertyType: (originalForm as any).propertyType || ""
+			};
+			setForm(formData);
 			setMfSearchTerm(originalForm.name);
 		} else {
 			// If adding new, reset to empty form
@@ -631,7 +641,7 @@ export default function HoldingsPage() {
 				assetClass = "Stocks";
 				portfolioRole = "Equity";
 			} else if (selectedRole === 'Mutual Funds') {
-				instrumentClass = "Mutual Funds";
+				instrumentClass = "Equity MF";
 				// For Mutual Funds, use the values from the selected fund
 				if (selectedMF) {
 					assetClass = selectedMF.asset_class || "Equity MF";
@@ -661,38 +671,25 @@ export default function HoldingsPage() {
 			calculatedUnits = parseFloat(form.investedAmount) / parseFloat(form.price);
 		}
 
-		const holding: Holding = {
+		const holding: HoldingData = {
 			id: editingId || uuidv4(),
+			user_id: 'user-123', // Mock user ID
 			instrumentClass: instrumentClass,
 			name: form.name.trim(),
 			symbol: form.symbol.trim() || undefined,
 			units: calculatedUnits || (form.units ? parseFloat(form.units) : undefined),
 			price: form.price ? parseFloat(form.price) : undefined,
 			investedAmount: form.investedAmount ? parseFloat(form.investedAmount) : undefined,
-			currentValue: form.currentValue ? parseFloat(form.currentValue) : undefined
+			currentValue: form.currentValue ? parseFloat(form.currentValue) : undefined,
+			asset_class: assetClass,
+			portfolio_role: portfolioRole,
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString()
 		};
 		
 		try {
 			// Save to DynamoDB
-			const dbHolding: HoldingData = {
-				id: holding.id,
-				user_id: 'user-123', // Mock user ID - should come from authentication
-				instrumentClass: holding.instrumentClass,
-				name: holding.name,
-				symbol: holding.symbol,
-				units: calculatedUnits || holding.units,
-				price: holding.price,
-				investedAmount: holding.investedAmount,
-				currentValue: holding.currentValue,
-				asset_class: assetClass,
-				portfolio_role: portfolioRole,
-				created_at: new Date().toISOString(),
-				updated_at: new Date().toISOString()
-			};
-			
-
-			
-			await saveHolding(dbHolding);
+			await saveHolding(holding);
 			
 			// Show loading state and refresh holdings from DynamoDB
 			setIsRefreshing(true);
@@ -717,7 +714,7 @@ export default function HoldingsPage() {
 		if (holding.instrumentClass === 'Stocks') {
 			role = 'Stocks';
 			instrumentType = 'Stocks';
-		} else if (holding.instrumentClass === 'Mutual Funds') {
+		} else if (holding.instrumentClass === 'Equity MF') {
 			role = 'Mutual Funds';
 			instrumentType = 'Mutual Funds';
 		} else if (holding.instrumentClass === 'ETF') {
@@ -738,25 +735,21 @@ export default function HoldingsPage() {
 		setSelectedRole(role);
 		setSelectedInstrumentType(instrumentType);
 		
-		const formData = {
-			instrumentClass: holding.instrumentClass,
+		// Store original values for reset functionality
+		setOriginalForm(holding);
+		setForm({
+			instrumentClass: holding.instrumentClass as AssetClass,
 			name: holding.name,
 			symbol: holding.symbol || "",
 			units: holding.units?.toString() || "",
 			price: holding.price?.toString() || "",
 			investedAmount: holding.investedAmount?.toString() || "",
 			currentValue: holding.currentValue?.toString() || "",
-			propertyType: (holding as any).propertyType || "",
-			asset_class: holding.asset_class,
-			portfolio_role: holding.portfolio_role
-		};
-		
-		// Store original values for reset functionality
-		setOriginalForm(formData);
-		setForm(formData);
+			propertyType: (holding as any).propertyType || ""
+		});
 		
 		// Set search terms to show the names for all asset classes
-		if (holding.instrumentClass === 'Mutual Funds' || holding.instrumentClass === 'ETF') {
+		if (holding.instrumentClass === 'Equity MF' || holding.instrumentClass === 'ETF') {
 			setMfSearchTerm(holding.name);
 			// Try to find and set the selected mutual fund to preserve asset class and portfolio role
 			if (holding.symbol) {
@@ -791,6 +784,62 @@ export default function HoldingsPage() {
 		}
 	}
 
+	// Handle import from CAS
+	async function handleImportStocks(casData: CASData) {
+		try {
+			setIsRefreshing(true);
+			
+			// Process each stock from CAS data
+			for (const stock of casData.stocks) {
+				// Check if stock already exists
+				const existingHolding = holdings.find(h => 
+					h.symbol === stock.symbol || h.name === stock.name
+				);
+				
+				if (existingHolding) {
+					// Update existing holding
+					const updatedHolding: HoldingData = {
+						...existingHolding,
+						units: (existingHolding.units || 0) + stock.units,
+						investedAmount: (existingHolding.investedAmount || 0) + stock.investedAmount,
+						currentValue: (existingHolding.currentValue || 0) + stock.currentValue,
+						updated_at: new Date().toISOString()
+					};
+					
+					await saveHolding(updatedHolding);
+				} else {
+					// Add new holding
+					const newHolding: HoldingData = {
+						id: uuidv4(),
+						user_id: 'user-123', // Mock user ID
+						instrumentClass: "Stocks",
+						name: stock.name,
+						symbol: stock.symbol,
+						units: stock.units,
+						price: stock.price,
+						investedAmount: stock.investedAmount,
+						currentValue: stock.currentValue,
+						asset_class: "Stocks",
+						portfolio_role: "Equity",
+						created_at: new Date().toISOString(),
+						updated_at: new Date().toISOString()
+					};
+					
+					await saveHolding(newHolding);
+				}
+			}
+			
+			// Refresh holdings data
+			await loadHoldingsData();
+			setIsRefreshing(false);
+			
+			alert(`Successfully imported ${casData.stocks.length} stocks from ${casData.broker}!`);
+		} catch (error) {
+			setIsRefreshing(false);
+			alert('Failed to import stocks. Please try again.');
+		}
+	}
+
 	return (
 		<div className="max-w-full space-y-4 pl-2">
 			{/* Header */}
@@ -799,6 +848,14 @@ export default function HoldingsPage() {
 					<div className="text-sm text-muted-foreground">Holdings</div>
 				</div>
 				<div className="flex items-center gap-2">
+					<Button 
+						onClick={() => setIsImportModalOpen(true)} 
+						variant="outline" 
+						size="sm"
+						leftIcon={<Upload size={16} />}
+					>
+						Import Stocks
+					</Button>
 					<Button 
 						onClick={() => setIsModalOpen(true)} 
 						variant="outline" 
@@ -890,7 +947,8 @@ export default function HoldingsPage() {
 						
 						{holdings && holdings.length > 0 ? (
 							<div>
-								<div className="rounded-xl border border-border overflow-auto">
+								{/* Desktop Table View */}
+								<div className="hidden md:block rounded-xl border border-border overflow-auto">
 									<table className="w-full text-left text-xs">
 										<thead className="bg-card sticky top-0 z-10">
 											<tr>
@@ -957,6 +1015,75 @@ export default function HoldingsPage() {
 											})}
 										</tbody>
 									</table>
+								</div>
+
+								{/* Mobile Card View */}
+								<div className="md:hidden space-y-3">
+									{currentHoldings.map((holding) => {
+										const currentValue = computeHoldingValue(holding);
+										const investedAmount = computeInvestedAmount(holding);
+										const pl = currentValue - investedAmount;
+										const plPercent = investedAmount > 0 ? (pl / investedAmount) * 100 : 0;
+										
+										return (
+											<div key={holding.id} className="bg-card border border-border rounded-xl p-4">
+												{/* Header with Instrument and Actions */}
+												<div className="flex items-start justify-between mb-3">
+													<div className="flex-1">
+														<div className="font-medium text-foreground text-sm mb-1">{holding.name}</div>
+														<div className="text-xs text-muted-foreground">
+															{holding.asset_class || holding.instrumentClass} • {holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass)}
+														</div>
+													</div>
+													<div className="flex items-center gap-2 ml-3">
+														<button 
+															onClick={() => openEdit(holding)} 
+															className="p-1.5 rounded-lg hover:bg-muted transition-colors text-blue-600 hover:text-blue-700"
+															title="Edit"
+														>
+															<Edit2 size={16} />
+														</button>
+														<button 
+															onClick={() => handleDeleteHolding(holding.id)} 
+															className="p-1.5 rounded-lg hover:bg-muted transition-colors text-rose-600 hover:text-rose-700"
+															title="Delete"
+														>
+															<Trash2 size={16} />
+														</button>
+													</div>
+												</div>
+
+												{/* Key Metrics */}
+												<div className="grid grid-cols-2 gap-4 mb-3">
+													<div>
+														<div className="text-xs text-muted-foreground mb-1">Units</div>
+														<div className="text-sm font-medium text-foreground">{holding.units?.toFixed(2) || '0.00'}</div>
+													</div>
+													<div>
+														<div className="text-xs text-muted-foreground mb-1">Price</div>
+														<div className="text-sm font-medium text-foreground">₹{holding.price?.toLocaleString() || '0.00'}</div>
+													</div>
+												</div>
+
+												{/* Value and P/L */}
+												<div className="flex items-center justify-between pt-3 border-t border-border/50">
+													<div>
+														<div className="text-xs text-muted-foreground mb-1">Current Value</div>
+														<div className="text-sm font-semibold text-foreground">₹{currentValue.toLocaleString()}</div>
+													</div>
+													<div className="text-right">
+														<div className="text-xs text-muted-foreground mb-1">P/L</div>
+														<div className={`text-sm font-semibold ${pl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+															₹{pl.toLocaleString()}
+														</div>
+														<div className={`text-xs ${pl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+															{plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%
+														</div>
+													</div>
+												</div>
+											</div>
+										);
+									})}
 								</div>
 								
 								{/* Pagination Controls */}
@@ -1695,6 +1822,13 @@ export default function HoldingsPage() {
 					</div>
 				</div>
 			)}
+
+			{/* Import Stocks Modal */}
+			<ImportStocksModal
+				isOpen={isImportModalOpen}
+				onClose={() => setIsImportModalOpen(false)}
+				onImport={handleImportStocks}
+			/>
 		</div>
 	);
 }
