@@ -144,6 +144,7 @@ resource "aws_apigatewayv2_route" "routes_public" {
     "POST /summary/category",
     "GET /budgets",
     "PUT /budgets",
+    "GET /categories",
     "GET /health"
   ])
   api_id    = aws_apigatewayv2_api.http.id

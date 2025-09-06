@@ -13,7 +13,7 @@ import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElem
 
 Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
-const API_BASE = process.env.NEXT_PUBLIC_EXPENSES_API || "/api/expenses";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_EXPENSES || process.env.NEXT_PUBLIC_EXPENSES_API || "/api/expenses";
 
 export default function ExpenseTrackerPage() {
   const { expenses, setExpenses, addExpense, deleteExpense, categoryMemory, rememberCategory, categoryBudgets, setCategoryBudget, defaultCategoryBudgets, setDefaultCategoryBudgets } = useApp() as any;
@@ -93,14 +93,16 @@ export default function ExpenseTrackerPage() {
         const mapped: Expense[] = data.items.map((it: any) => ({ id: it.expenseId || uuidv4(), text: it.rawText, amount: Number(it.amount || 0), category: it.category, date: it.date || new Date().toISOString(), createdAt: it.createdAt, note: it.rawText }));
         setExpenses(mapped.sort((a,b)=> (a.date < b.date ? 1 : -1)));
       }
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+    }
   }
 
   useEffect(() => { fetchList(); }, []);
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/budgets?userId=demo`);
+        const res = await fetch(`${API_BASE}/budgets?userId=demo`);
         const data = await res.json();
         if (data) {
           const def = Object.fromEntries(Object.entries(data.defaultBudgets || {}).map(([k,v]: any) => [k, Number(v) || 0]));
@@ -113,7 +115,7 @@ export default function ExpenseTrackerPage() {
   useEffect(() => {
     (async () => {
       try {
-        const base = await (await fetch(`/api/categories`)).json();
+        const base = await (await fetch(`${API_BASE}/categories`)).json();
         const fromExpenses = Array.from(new Set(expenses.map((e: Expense)=> String(e.category || "Other"))));
         const union = Array.from(new Set<string>([...(base.categories||[]), ...fromExpenses])).sort((a,b)=> a.localeCompare(b));
         setAllCategories(union);
@@ -127,7 +129,7 @@ export default function ExpenseTrackerPage() {
   useEffect(() => {
     (async () => {
       try {
-        const base = await (await fetch(`/api/categories`)).json();
+        const base = await (await fetch(`${API_BASE}/categories`)).json();
         const fromExpenses = Array.from(new Set(expenses.map((e: Expense)=> String(e.category || "Other"))));
         const union = Array.from(new Set<string>([...(base.categories||[]), ...fromExpenses])).sort((a,b)=> a.localeCompare(b));
         (useApp.getState() as any);
@@ -269,7 +271,7 @@ export default function ExpenseTrackerPage() {
     setDefaultCategoryBudgets(nextDef);
     setEditingCat(null);
     setEditingVal("");
-    fetch(`/api/budgets`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "demo", defaultBudgets: nextDef, overrides: overridesByMonth }) }).catch(()=>{});
+    fetch(`${API_BASE}/budgets`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "demo", defaultBudgets: nextDef, overrides: overridesByMonth }) }).catch(()=>{});
   }
 
   function getMonthlyBudgetFor(ym: string, cat: string): number {
@@ -1098,7 +1100,7 @@ export default function ExpenseTrackerPage() {
                 });
                 const nextOverrides = { ...(overridesByMonth || {}), [currentYm]: baseMonth };
                 const nextDefaults = { ...(defaultCategoryBudgets || {}), ...tempDefaultBudgets };
-                try { await fetch(`/api/budgets`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "demo", defaultBudgets: nextDefaults, overrides: nextOverrides }) }); } catch {}
+                try { await fetch(`${API_BASE}/budgets`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "demo", defaultBudgets: nextDefaults, overrides: nextOverrides }) }); } catch {}
                 (useApp.getState() as any).setDefaultCategoryBudgets(nextDefaults);
                 setOverridesByMonth(nextOverrides);
                 setTempDefaultBudgets({}); setTempOverrideBudgets({}); setDraftBudgets({}); setBaselineBudgets({}); setDraftInputs({});
