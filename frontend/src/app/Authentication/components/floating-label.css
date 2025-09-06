@@ -1,0 +1,5 @@
+.not-empty-label {
+  top: -1rem !important;
+  font-size: 0.875rem !important;
+  color: #3b82f6 !important; /* Tailwind blue-500 */
+}

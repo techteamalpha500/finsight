@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="40" cy="40" r="38" stroke="#2563eb" stroke-width="4" fill="#eff6ff"/>
+  <path d="M24 48L36 34L44 44L56 28" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="56" cy="28" r="3" fill="#2563eb"/>
+  <circle cx="36" cy="34" r="3" fill="#2563eb"/>
+  <circle cx="44" cy="44" r="3" fill="#2563eb"/>
+  <circle cx="24" cy="48" r="3" fill="#2563eb"/>
+  <text x="40" y="70" text-anchor="middle" fill="#2563eb" font-size="16" font-family="Arial" dy=".3em">FS</text>
+</svg>
