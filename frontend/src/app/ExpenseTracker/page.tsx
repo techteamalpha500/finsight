@@ -916,7 +916,7 @@ export default function ExpenseTrackerPage() {
         </Card>
       </div>
       ) : (
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 p-4 flex-1 min-h-0 overflow-auto">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 p-4 flex-1 min-h-0 overflow-auto">
         {/* Insights Tab Content */}
         <Card className="xl:col-span-2 h-full flex flex-col overflow-hidden">
           <CardHeader>
@@ -1072,7 +1072,7 @@ export default function ExpenseTrackerPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
       )}
 
       {compareOpen && (
