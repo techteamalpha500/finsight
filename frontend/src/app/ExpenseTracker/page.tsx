@@ -8,7 +8,7 @@ import { Button } from "../components/Button";
 import { Doughnut, Bar } from "react-chartjs-2";
 import { Progress } from "../components/Progress";
 import { formatCurrency } from "../utils/format";
-import { X, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Download, Settings2, Plus } from "lucide-react";
+import { X, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Download, Settings2, Plus, DollarSign, TrendingUp, Target, PieChart } from "lucide-react";
 import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
 
 Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -91,12 +91,8 @@ export default function ExpenseTrackerPage() {
       const data = await res.json();
       if (Array.isArray(data.items)) {
         const mapped: Expense[] = data.items.map((it: any) => ({ id: it.expenseId || uuidv4(), text: it.rawText, amount: Number(it.amount || 0), category: it.category, date: it.date || new Date().toISOString(), createdAt: it.createdAt, note: it.rawText }));
-        // Sort by createdAt desc (newest first) by default
-        setExpenses(mapped.sort((a,b)=> {
-          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.date).getTime();
-          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.date).getTime();
-          return bTime - aTime; // desc order
-        }));
+        // Don't pre-sort here - let sortedExpenses memo handle all sorting
+        setExpenses(mapped);
       }
     } catch (error) {
       console.error("Error fetching expenses:", error);
@@ -670,7 +666,11 @@ export default function ExpenseTrackerPage() {
                           )}
                         </div>
                       </div>
-                      <Progress value={Math.min(100, pct)} className="mt-2" />
+                      <Progress 
+                        value={Math.min(100, pct)} 
+                        variant={alert ? "danger" : warn ? "warning" : "success"}
+                        className="mt-2" 
+                      />
                       {budget > 0 && (
                         <div className={`mt-1 text-xs ${alert ? "text-rose-600" : warn ? "text-amber-600" : "text-muted-foreground"}`}>
                           {alert ? `${privacy ? '•••' : formatCurrency(spent - budget)} over` : `${privacy ? '•••' : formatCurrency(budget - spent)} left`}
@@ -912,6 +912,164 @@ export default function ExpenseTrackerPage() {
                 </div>
               );
             })()}
+          </CardContent>
+        </Card>
+      </div>
+      ) : (
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 p-4 flex-1 min-h-0 overflow-auto">
+        {/* Insights Tab Content */}
+        <Card className="xl:col-span-2 h-full flex flex-col overflow-hidden">
+          <CardHeader>
+            <CardTitle>Expense Insights</CardTitle>
+            <CardDescription>Key performance indicators and analytics</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 flex flex-col pb-0">
+            <div className="mb-3 flex flex-wrap gap-2 items-center">
+              <label className="text-sm text-muted-foreground">Range</label>
+              <select value={insightsPreset} onChange={(e)=> setInsightsPreset(e.target.value as any)} className="h-9 rounded-md border border-border px-2 bg-card">
+                <option value="today">Today</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+                <option value="lastMonth">Last month</option>
+                <option value="custom">Custom</option>
+              </select>
+              {insightsPreset === "custom" && (
+                <>
+                  <input type="date" value={insightsStart} onChange={e=> setInsightsStart(e.target.value)} className="h-9 rounded-md border border-border px-2 bg-card" />
+                  <span className="text-sm text-muted-foreground">to</span>
+                  <input type="date" value={insightsEnd} onChange={e=> setInsightsEnd(e.target.value)} className="h-9 rounded-md border border-border px-2 bg-card" />
+                </>
+              )}
+              <label className="ml-auto inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={insightsOverOnly} onChange={e=> setInsightsOverOnly(e.target.checked)} /> Over budget only</label>
+            </div>
+            
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <DollarSign className="h-5 w-5 text-blue-500" />
+                  <div className="text-xs text-muted-foreground">Total Spent</div>
+                </div>
+                <div className="text-2xl font-bold">{fmtMoney(monthSpend)}</div>
+              </div>
+              
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <div className="text-xs text-muted-foreground">Daily Average</div>
+                </div>
+                <div className="text-2xl font-bold">{fmtMoney(monthSpend / new Date().getDate())}</div>
+              </div>
+              
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <Target className="h-5 w-5 text-amber-500" />
+                  <div className="text-xs text-muted-foreground">Budget Used</div>
+                </div>
+                <div className="text-2xl font-bold">{totalBudget > 0 ? `${budgetUsedPct}%` : "—"}</div>
+              </div>
+              
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <PieChart className="h-5 w-5 text-purple-500" />
+                  <div className="text-xs text-muted-foreground">Top Category</div>
+                </div>
+                <div className="text-2xl font-bold">{topCategory}</div>
+              </div>
+            </div>
+            
+            {/* Category Distribution Chart */}
+            <div className="flex-1 min-h-0">
+              <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
+              {(() => {
+                // Build category share for current Insights range
+                const now = new Date();
+                let start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                let end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (insightsPreset === "week") { const day = start.getDay() || 7; start.setDate(start.getDate() - (day-1)); end = new Date(start); end.setDate(start.getDate() + 6); }
+                else if (insightsPreset === "month") { start = new Date(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth()+1, 0); }
+                else if (insightsPreset === "lastMonth") { const s = new Date(now.getFullYear(), now.getMonth()-1, 1); start = s; end = new Date(now.getFullYear(), now.getMonth(), 0); }
+                else if (insightsPreset === "custom" && insightsStart && insightsEnd) { start = new Date(insightsStart); end = new Date(insightsEnd); }
+                const startSOD = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                const endExclusive = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+                const map = new Map<string, number>();
+                for (const e of expenses) {
+                  const d0 = new Date(e.date as any);
+                  const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate());
+                  if (d >= startSOD && d < endExclusive) {
+                    const k = String(e.category || "Other");
+                    map.set(k, (map.get(k) || 0) + Number(e.amount||0));
+                  }
+                }
+                const entries = Array.from(map.entries()).sort((a,b)=> b[1]-a[1]);
+                if (entries.length === 0) return <div className="text-muted-foreground text-sm">No data for selected period</div>;
+                
+                const data = {
+                  labels: entries.map(([k]) => k),
+                  datasets: [{
+                    data: entries.map(([,v]) => v),
+                    backgroundColor: [
+                      '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+                      '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+                    ]
+                  }]
+                };
+                
+                return (
+                  <div className="h-64">
+                    <Doughnut data={data} options={{ responsive: true, maintainAspectRatio: false }} />
+                  </div>
+                );
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Budget Analysis */}
+        <Card className="h-full overflow-y-auto">
+          <CardHeader>
+            <CardTitle>Budget Analysis</CardTitle>
+            <CardDescription>Current month budget status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(monthlyCategorySpend.arr).length > 0 ? (
+              <div className="space-y-3">
+                {(monthlyCategorySpend.arr).map(([cat, spent]) => {
+                  const budget = getMonthlyBudgetFor(currentYm, cat);
+                  const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+                  const warn = pct >= 80 && pct < 100;
+                  const alert = pct >= 100;
+                  return (
+                    <div key={cat} className="rounded-lg border border-border p-3">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <div className="font-medium">{cat}</div>
+                        <div className="text-muted-foreground">
+                          {privacy ? "•••" : formatCurrency(spent)}
+                          <span className="mx-1">/</span>
+                          {budget > 0 ? (
+                            <span className="font-medium">{privacy ? "•••" : formatCurrency(budget)}</span>
+                          ) : (
+                            <span className="text-xs">No budget</span>
+                          )}
+                        </div>
+                      </div>
+                      <Progress 
+                        value={Math.min(100, pct)} 
+                        variant={alert ? "danger" : warn ? "warning" : "success"}
+                        className="mb-1" 
+                      />
+                      {budget > 0 && (
+                        <div className={`text-xs ${alert ? "text-rose-600" : warn ? "text-amber-600" : "text-muted-foreground"}`}>
+                          {alert ? `${privacy ? '•••' : formatCurrency(spent - budget)} over` : `${privacy ? '•••' : formatCurrency(budget - spent)} left`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-sm">No expenses this month</div>
+            )}
           </CardContent>
         </Card>
       </div>
