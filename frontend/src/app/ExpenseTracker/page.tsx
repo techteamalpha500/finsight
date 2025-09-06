@@ -8,7 +8,7 @@ import { Button } from "../components/Button";
 import { Doughnut, Bar } from "react-chartjs-2";
 import { Progress } from "../components/Progress";
 import { formatCurrency } from "../utils/format";
-import { X, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Download, Settings2 } from "lucide-react";
+import { X, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff, Download, Settings2, Plus } from "lucide-react";
 import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
 
 Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -91,7 +91,12 @@ export default function ExpenseTrackerPage() {
       const data = await res.json();
       if (Array.isArray(data.items)) {
         const mapped: Expense[] = data.items.map((it: any) => ({ id: it.expenseId || uuidv4(), text: it.rawText, amount: Number(it.amount || 0), category: it.category, date: it.date || new Date().toISOString(), createdAt: it.createdAt, note: it.rawText }));
-        setExpenses(mapped.sort((a,b)=> (a.date < b.date ? 1 : -1)));
+        // Sort by createdAt desc (newest first) by default
+        setExpenses(mapped.sort((a,b)=> {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.date).getTime();
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.date).getTime();
+          return bTime - aTime; // desc order
+        }));
       }
     } catch (error) {
       console.error("Error fetching expenses:", error);
@@ -475,7 +480,10 @@ export default function ExpenseTrackerPage() {
               {dateOpen && (
                 <input type="date" value={selectedDate} onChange={(e)=> setSelectedDate(e.target.value)} className="h-11 rounded-xl border border-border px-3 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]" />
               )}
-              <Button type="submit" size="sm" variant="outline">Add Expense</Button>
+              <Button type="submit" size="sm" variant="outline">
+                <Plus className="h-4 w-4 mr-2"/>
+                Add Expense
+              </Button>
             </form>
             {ai && (
               <div className="mt-3 rounded-xl border border-border p-3 text-sm space-y-2">
@@ -556,13 +564,14 @@ export default function ExpenseTrackerPage() {
                 <tr>
                   <th className="px-3 py-2 border-b">
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => toggleSort("date")} className="inline-flex items-center gap-1 cursor-pointer select-none">
+                      <button type="button" onClick={() => toggleSort("createdAt")} title="Sort by added time (default)" className={`inline-flex items-center gap-1 cursor-pointer select-none ${sortField==='createdAt' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                        Added
+                        {sortField !== "createdAt" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                      </button>
+                      <span className="text-muted-foreground">|</span>
+                      <button type="button" onClick={() => toggleSort("date")} title="Sort by expense date" className={`inline-flex items-center gap-1 cursor-pointer select-none ${sortField==='date' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
                         Date
                         {sortField !== "date" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
-                      </button>
-                      <button type="button" onClick={() => toggleSort("createdAt")} title="Sort by added time" className={`inline-flex items-center gap-1 cursor-pointer select-none text-xs px-1.5 py-0.5 rounded border ${sortField==='createdAt' ? 'border-foreground text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>
-                        Newest
-                        {sortField !== "createdAt" ? <ArrowUpDown className="h-3 w-3" /> : (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
                       </button>
                     </div>
                   </th>

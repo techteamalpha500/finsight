@@ -316,26 +316,64 @@ def handler(event, context):
                 return _response(400, {"error": "Missing userId"})
             try:
                 res = user_budgets_table.get_item(Key={"userId": user_id})
-                budgets = (res.get("Item", {}) or {}).get("budgets", {})
-                # Normalize Decimals -> float via _to_json in _response
-                return _response(200, {"budgets": budgets})
+                item = res.get("Item", {}) or {}
+                
+                # Handle both old format (budgets) and new format (defaultBudgets + overrides)
+                if "defaultBudgets" in item or "overrides" in item:
+                    # New format
+                    default_budgets = item.get("defaultBudgets", {})
+                    overrides = item.get("overrides", {})
+                    return _response(200, {
+                        "defaultBudgets": default_budgets,
+                        "overrides": overrides
+                    })
+                else:
+                    # Old format - convert to new format
+                    budgets = item.get("budgets", {})
+                    return _response(200, {
+                        "budgets": budgets,
+                        "defaultBudgets": budgets,
+                        "overrides": {}
+                    })
             except Exception as e:
                 print("BUDGETS_GET_ERROR", str(e))
-                return _response(200, {"budgets": {}})
+                return _response(200, {"budgets": {}, "defaultBudgets": {}, "overrides": {}})
 
         if route_key == "PUT /budgets":
             user_id = body.get("userId")
             budgets = body.get("budgets") or {}
-            if not user_id or not isinstance(budgets, dict):
-                return _response(400, {"error": "Missing userId or budgets"})
+            default_budgets = body.get("defaultBudgets") or {}
+            overrides = body.get("overrides") or {}
+            
+            if not user_id:
+                return _response(400, {"error": "Missing userId"})
+            
             try:
-                # Convert to Decimal for DynamoDB
-                put_budgets = {k: Decimal(str(v)) for k, v in budgets.items()}
-                user_budgets_table.put_item(Item={
-                    "userId": user_id,
-                    "budgets": put_budgets,
-                    "updatedAt": datetime.utcnow().isoformat(),
-                })
+                # Handle both old format (budgets) and new format (defaultBudgets + overrides)
+                if default_budgets or overrides:
+                    # New format: defaultBudgets + overrides
+                    put_default_budgets = {k: Decimal(str(v)) for k, v in default_budgets.items()}
+                    put_overrides = {}
+                    for month, month_overrides in overrides.items():
+                        put_overrides[month] = {k: Decimal(str(v)) for k, v in month_overrides.items()}
+                    
+                    user_budgets_table.put_item(Item={
+                        "userId": user_id,
+                        "defaultBudgets": put_default_budgets,
+                        "overrides": put_overrides,
+                        "updatedAt": datetime.utcnow().isoformat(),
+                    })
+                else:
+                    # Old format: just budgets
+                    if not isinstance(budgets, dict):
+                        return _response(400, {"error": "Missing budgets"})
+                    put_budgets = {k: Decimal(str(v)) for k, v in budgets.items()}
+                    user_budgets_table.put_item(Item={
+                        "userId": user_id,
+                        "budgets": put_budgets,
+                        "updatedAt": datetime.utcnow().isoformat(),
+                    })
+                
                 return _response(200, {"ok": True})
             except Exception as e:
                 print("BUDGETS_PUT_ERROR", str(e))
