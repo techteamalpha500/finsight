@@ -528,9 +528,9 @@ export default function ExpenseTrackerPage() {
 
       {/* Main panels */}
       {activeTab === "data" ? (
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 p-4 flex-1 min-h-0 overflow-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 flex-1 min-h-0 overflow-auto">
         {/* Recent Expenses (full width on xl span 2) */}
-        <Card className="xl:col-span-2 h-full flex flex-col overflow-hidden">
+        <Card className="lg:col-span-8 h-full flex flex-col overflow-hidden">
           <CardHeader>
             <CardTitle>Recent Expenses</CardTitle>
             <CardDescription>Synced with backend</CardDescription>
@@ -555,59 +555,92 @@ export default function ExpenseTrackerPage() {
               )}
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-card">
-                <tr>
-                  <th className="px-3 py-2 border-b">
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => toggleSort("createdAt")} title="Sort by added time (default)" className={`inline-flex items-center gap-1 cursor-pointer select-none ${sortField==='createdAt' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
-                        Added
-                        {sortField !== "createdAt" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
-                      </button>
-                      <span className="text-muted-foreground">|</span>
-                      <button type="button" onClick={() => toggleSort("date")} title="Sort by expense date" className={`inline-flex items-center gap-1 cursor-pointer select-none ${sortField==='date' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
-                        Date
-                        {sortField !== "date" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
-                      </button>
-                    </div>
-                  </th>
-                  <th className="px-3 py-2 border-b">Text</th>
-                  <th className="px-3 py-2 border-b">
-                    <button type="button" onClick={() => toggleSort("category")} className="inline-flex items-center gap-1 cursor-pointer select-none">
-                      Category
-                      {sortField !== "category" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
-                    </button>
-                  </th>
-                  <th className="px-3 py-2 border-b text-right">
-                    <button type="button" onClick={() => toggleSort("amount")} className="inline-flex items-center gap-1 cursor-pointer select-none">
-                      Amount
-                      {sortField !== "amount" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
-                    </button>
-                  </th>
-                  <th className="px-3 py-2 border-b text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+              {/* Desktop Table View */}
+              <div className="hidden sm:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-card">
+                    <tr>
+                      <th className="px-3 py-2 border-b">
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => toggleSort("createdAt")} title="Sort by added time (default)" className={`inline-flex items-center gap-1 cursor-pointer select-none ${sortField==='createdAt' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                            Added
+                            {sortField !== "createdAt" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                          </button>
+                          <span className="text-muted-foreground">|</span>
+                          <button type="button" onClick={() => toggleSort("date")} title="Sort by expense date" className={`inline-flex items-center gap-1 cursor-pointer select-none ${sortField==='date' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                            Date
+                            {sortField !== "date" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                          </button>
+                        </div>
+                      </th>
+                      <th className="px-3 py-2 border-b">Text</th>
+                      <th className="px-3 py-2 border-b">
+                        <button type="button" onClick={() => toggleSort("category")} className="inline-flex items-center gap-1 cursor-pointer select-none">
+                          Category
+                          {sortField !== "category" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2 border-b text-right">
+                        <button type="button" onClick={() => toggleSort("amount")} className="inline-flex items-center gap-1 cursor-pointer select-none">
+                          Amount
+                          {sortField !== "amount" ? <ArrowUpDown className="h-3.5 w-3.5" /> : (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2 border-b text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((e: Expense) => (
+                      <tr key={e.id} className="border-b align-top hover:bg-muted/50 transition-colors">
+                        <td className="px-3 py-2">{fmtDateYYYYMMDDLocal(e.date as any)}</td>
+                        <td className="px-3 py-2">{e.text}</td>
+                        <td className="px-3 py-2">{e.category as string}</td>
+                        <td className="px-3 py-2 text-right font-medium">{privacy ? "•••" : e.amount.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            aria-label="Delete"
+                            title="Delete"
+                            onClick={() => handleDelete(e.id)}
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-full border border-transparent text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="sm:hidden p-4 space-y-3">
                 {pageRows.map((e: Expense) => (
-                  <tr key={e.id} className="border-b align-top">
-                    <td className="px-3 py-2">{fmtDateYYYYMMDDLocal(e.date as any)}</td>
-                    <td className="px-3 py-2">{e.text}</td>
-                    <td className="px-3 py-2">{e.category as string}</td>
-                    <td className="px-3 py-2 text-right">{privacy ? "•••" : e.amount.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right">
+                  <div key={e.id} className="rounded-lg border border-border p-4 bg-card shadow-sm">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-foreground truncate">{e.text}</div>
+                        <div className="text-sm text-muted-foreground">{fmtDateYYYYMMDDLocal(e.date as any)}</div>
+                      </div>
                       <button
                         aria-label="Delete"
                         title="Delete"
                         onClick={() => handleDelete(e.id)}
-                        className="h-7 w-7 inline-flex items-center justify-center rounded-full border border-transparent text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                        className="ml-3 h-8 w-8 flex-shrink-0 inline-flex items-center justify-center rounded-full border border-transparent text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                        {e.category as string}
+                      </div>
+                      <div className="text-lg font-semibold text-foreground">
+                        {privacy ? "•••" : `$${e.amount.toFixed(2)}`}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="pt-3 border-t border-border">
@@ -622,7 +655,7 @@ export default function ExpenseTrackerPage() {
         </Card>
 
         {/* Budgets in Data tab */}
-        <Card className="h-full overflow-y-auto">
+        <Card className="lg:col-span-4 h-full overflow-y-auto">
           <CardHeader>
             <CardTitle>Category Budgets</CardTitle>
             <CardDescription>{currentYm} budgets and usage</CardDescription>
@@ -637,43 +670,45 @@ export default function ExpenseTrackerPage() {
                   const alert = pct >= 100;
                   const barClass = alert ? "bg-rose-500" : warn ? "bg-amber-500" : undefined;
                   return (
-                    <div key={cat} className="rounded-lg border border-border p-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="font-medium">{cat}</div>
-                        <div className="text-muted-foreground">
-                          {privacy ? "•••" : formatCurrency(spent)}
-                          <span className="mx-1">/</span>
-                          {budget > 0 ? (
-                            <span className="font-medium">{privacy ? "•••" : formatCurrency(budget)}</span>
-                          ) : editingCat === cat ? (
-                            <input
-                              autoFocus
-                              type="number"
-                              step="0.01"
-                              value={editingVal}
-                              onChange={(e)=> setEditingVal(e.target.value)}
-                              onBlur={()=> saveBudget(cat)}
-                              onKeyDown={(e)=> {
-                                if (e.key === "Enter") saveBudget(cat);
-                                else if (e.key === "Escape") { setEditingCat(null); setEditingVal(""); }
-                              }}
-                              className="h-7 w-28 ml-1 rounded-md border border-border px-2 bg-card text-right"
-                            />
-                          ) : (
-                            <button className="ml-1 underline decoration-dotted hover:opacity-80" onClick={()=> { setEditingCat(cat); setEditingVal(String(budget || 0)); }}>
-                              {budget > 0 ? (privacy ? "•••" : formatCurrency(budget)) : "Set budget"}
-                            </button>
-                          )}
+                    <div key={cat} className="rounded-lg border border-border p-4 bg-card shadow-sm">
+                      <div className="flex items-center justify-between text-sm mb-3">
+                        <div className="font-medium text-foreground">{cat}</div>
+                        <div className="text-muted-foreground text-right">
+                          <div className="font-medium">
+                            {privacy ? "•••" : formatCurrency(spent)}
+                            <span className="mx-1 text-muted-foreground">/</span>
+                            {budget > 0 ? (
+                              <span className="font-medium">{privacy ? "•••" : formatCurrency(budget)}</span>
+                            ) : editingCat === cat ? (
+                              <input
+                                autoFocus
+                                type="number"
+                                step="0.01"
+                                value={editingVal}
+                                onChange={(e)=> setEditingVal(e.target.value)}
+                                onBlur={()=> saveBudget(cat)}
+                                onKeyDown={(e)=> {
+                                  if (e.key === "Enter") saveBudget(cat);
+                                  else if (e.key === "Escape") { setEditingCat(null); setEditingVal(""); }
+                                }}
+                                className="h-7 w-28 ml-1 rounded-md border border-border px-2 bg-card text-right"
+                              />
+                            ) : (
+                              <button className="ml-1 underline decoration-dotted hover:opacity-80 transition-opacity" onClick={()=> { setEditingCat(cat); setEditingVal(String(budget || 0)); }}>
+                                {budget > 0 ? (privacy ? "•••" : formatCurrency(budget)) : "Set budget"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Progress 
                         value={Math.min(100, pct)} 
                         variant={alert ? "danger" : warn ? "warning" : "success"}
-                        className="mt-2" 
+                        className="mb-2" 
                       />
                       {budget > 0 && (
-                        <div className={`mt-1 text-xs ${alert ? "text-rose-600" : warn ? "text-amber-600" : "text-muted-foreground"}`}>
-                          {alert ? `${privacy ? '•••' : formatCurrency(spent - budget)} over` : `${privacy ? '•••' : formatCurrency(budget - spent)} left`}
+                        <div className={`text-xs ${alert ? "text-rose-600" : warn ? "text-amber-600" : "text-emerald-600"}`}>
+                          {alert ? `${privacy ? '•••' : formatCurrency(spent - budget)} over budget` : `${privacy ? '•••' : formatCurrency(budget - spent)} remaining`}
                         </div>
                       )}
                     </div>
@@ -687,39 +722,44 @@ export default function ExpenseTrackerPage() {
         </Card>
       </div>
       ) : (
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 p-4 flex-1 overflow-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 flex-1 overflow-auto">
         {/* KPIs */}
-        <Card className="xl:col-span-3">
+        <Card className="lg:col-span-12">
           <CardHeader>
             <CardTitle>Overview</CardTitle>
             <CardDescription>Key metrics for {currentYm}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-xl border border-border p-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="rounded-xl border border-border p-4 bg-card shadow-sm">
                 <div className="text-xs text-muted-foreground">Today</div>
-                <div className="text-lg font-semibold">{fmtMoney(todaySpend)}</div>
+                <div className="text-xl font-semibold">{fmtMoney(todaySpend)}</div>
               </div>
-              <div className="rounded-xl border border-border p-3">
+              <div className="rounded-xl border border-border p-4 bg-card shadow-sm">
                 <div className="text-xs text-muted-foreground">This Month</div>
-                <div className="text-lg font-semibold">{fmtMoney(monthSpend)}</div>
+                <div className="text-xl font-semibold">{fmtMoney(monthSpend)}</div>
               </div>
-              <div className="rounded-xl border border-border p-3">
+              <div className="rounded-xl border border-border p-4 bg-card shadow-sm">
                 <div className="text-xs text-muted-foreground">Budget Used</div>
-                <div className={`text-lg font-semibold ${totalBudget > 0 ? (budgetUsedPct >= 100 ? 'text-rose-600' : (budgetUsedPct >= 80 ? 'text-amber-600' : 'text-emerald-600')) : ''}`}>
-                  {totalBudget > 0 ? `${privacy ? '•••' : formatCurrency(monthSpend)} / ${privacy ? '•••' : formatCurrency(totalBudget)} (${budgetUsedPct}%)` : "—"}
+                <div className={`text-xl font-semibold ${totalBudget > 0 ? (budgetUsedPct >= 100 ? 'text-rose-600' : (budgetUsedPct >= 80 ? 'text-amber-600' : 'text-emerald-600')) : ''}`}>
+                  {totalBudget > 0 ? `${budgetUsedPct}%` : "—"}
                 </div>
+                {totalBudget > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {privacy ? "•••" : formatCurrency(monthSpend)} / {privacy ? "•••" : formatCurrency(totalBudget)}
+                  </div>
+                )}
               </div>
-              <div className="rounded-xl border border-border p-3">
+              <div className="rounded-xl border border-border p-4 bg-card shadow-sm">
                 <div className="text-xs text-muted-foreground">Top Category</div>
-                <div className="text-lg font-semibold">{topCategory}</div>
+                <div className="text-xl font-semibold">{topCategory}</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Donut */}
-        <Card>
+        {/* Category Share Chart */}
+        <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Category Share</CardTitle>
             <CardDescription>Distribution across categories</CardDescription>
@@ -748,16 +788,41 @@ export default function ExpenseTrackerPage() {
               const entries = Array.from(map.entries()).sort((a,b)=> b[1]-a[1]);
               if (entries.length === 0) return <div className="text-muted-foreground text-sm">No data yet</div>;
               return (
-                <div className="mx-auto max-w-xs">
-                  <Doughnut data={{ labels: entries.map(([c])=>c), datasets: [{ data: entries.map(([,v])=>v), backgroundColor: ["#6366f1", "#10b981", "#f59e42", "#fbbf24", "#3b82f6", "#ef4444", "#a3e635"] }] }} options={{ plugins: { legend: { position: "bottom" as const } }, cutout: "70%" }} />
+                <div className="w-full max-w-sm mx-auto">
+                  <Doughnut 
+                    data={{ 
+                      labels: entries.map(([c])=>c), 
+                      datasets: [{ 
+                        data: entries.map(([,v])=>v), 
+                        backgroundColor: ["#6366f1", "#10b981", "#f59e42", "#fbbf24", "#3b82f6", "#ef4444", "#a3e635"] 
+                      }] 
+                    }} 
+                    options={{ 
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: { 
+                        legend: { 
+                          position: "bottom" as const,
+                          labels: {
+                            padding: 16,
+                            usePointStyle: true,
+                            font: {
+                              size: 12
+                            }
+                          }
+                        } 
+                      }, 
+                      cutout: "65%" 
+                    }} 
+                  />
                 </div>
               );
             })()}
           </CardContent>
         </Card>
 
-        {/* Monthly */}
-        <Card className="xl:col-span-2">
+        {/* Actual vs Expected Chart */}
+        <Card className="lg:col-span-8">
           <CardHeader>
             <CardTitle>Actual vs Expected (prorated by day)</CardTitle>
             <CardDescription>Compare spend vs budget for your selected range</CardDescription>
@@ -858,8 +923,32 @@ export default function ExpenseTrackerPage() {
               };
               return (
                 <div className="space-y-4">
-                  <div className="h-56">
-                    <Bar data={chart} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" as const } }, scales: { y: { beginAtZero: true } } }} />
+                  <div className="h-64">
+                    <Bar 
+                      data={chart} 
+                      options={{ 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                          legend: { 
+                            position: "bottom" as const,
+                            labels: {
+                              padding: 16,
+                              usePointStyle: true
+                            }
+                          } 
+                        }, 
+                        scales: { 
+                          y: { beginAtZero: true },
+                          x: {
+                            ticks: {
+                              maxRotation: 45,
+                              minRotation: 0
+                            }
+                          }
+                        } 
+                      }} 
+                    />
                   </div>
                   {/* Totals summary */}
                   {(() => {
