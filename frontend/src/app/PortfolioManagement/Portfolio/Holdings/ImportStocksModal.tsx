@@ -29,7 +29,59 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
     "Angel"
   ];
 
-  const isSubmitDisabled = !selectedFile || !password.trim();
+  // Define supported file formats for each broker
+  const brokerFileFormats = {
+    "Other": {
+      label: "CAS File",
+      description: "Upload your Consolidated Account Statement (CAS)",
+      accept: ".pdf",
+      helpText: "CAS (Consolidated Account Statement) is a document that contains all your holdings across different brokers."
+    },
+    "Zerodha": {
+      label: "Zerodha Holdings File",
+      description: "Upload your Zerodha holdings export file",
+      accept: ".csv,.xlsx,.pdf",
+      helpText: "Export your holdings from Zerodha Console or upload your CAS file."
+    },
+    "Groww": {
+      label: "Groww Holdings File", 
+      description: "Upload your Groww holdings export file",
+      accept: ".csv,.xlsx,.pdf",
+      helpText: "Export your holdings from Groww app or upload your CAS file."
+    },
+    "Upstox": {
+      label: "Upstox Holdings File",
+      description: "Upload your Upstox holdings export file", 
+      accept: ".csv,.xlsx,.pdf",
+      helpText: "Export your holdings from Upstox Pro or upload your CAS file."
+    },
+    "Angel": {
+      label: "Angel Holdings File",
+      description: "Upload your Angel holdings export file",
+      accept: ".csv,.xlsx,.pdf", 
+      helpText: "Export your holdings from Angel One or upload your CAS file."
+    }
+  };
+
+  const isSubmitDisabled = !selectedFile || (broker === "Other" && !password.trim());
+
+  // Get current broker format configuration
+  const currentFormat = brokerFileFormats[broker as keyof typeof brokerFileFormats];
+
+  // File validation function
+  const validateFile = (file: File, selectedBroker: string): boolean => {
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return false;
+    }
+    
+    const format = brokerFileFormats[selectedBroker as keyof typeof brokerFileFormats];
+    const acceptedTypes = format.accept.split(',').map(type => type.trim());
+    
+    // Check file extension
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    return acceptedTypes.includes(fileExtension);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -48,7 +100,7 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      if (validateCASFile(file)) {
+      if (validateFile(file, broker)) {
         setSelectedFile(file);
         setError("");
         // Auto-detect broker from filename
@@ -57,7 +109,8 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
           setBroker(detectedBroker);
         }
       } else {
-        setError("Please upload a valid PDF file (CAS document) under 10MB");
+        const currentFormat = brokerFileFormats[broker as keyof typeof brokerFileFormats];
+        setError(`Please upload a valid file (${currentFormat.accept}) under 10MB`);
       }
     }
   };
@@ -65,7 +118,7 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (validateCASFile(file)) {
+      if (validateFile(file, broker)) {
         setSelectedFile(file);
         setError("");
         // Auto-detect broker from filename
@@ -74,7 +127,8 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
           setBroker(detectedBroker);
         }
       } else {
-        setError("Please upload a valid PDF file (CAS document) under 10MB");
+        const currentFormat = brokerFileFormats[broker as keyof typeof brokerFileFormats];
+        setError(`Please upload a valid file (${currentFormat.accept}) under 10MB`);
       }
     }
   };
@@ -82,7 +136,7 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !password.trim()) return;
+    if (!selectedFile || (broker === "Other" && !password.trim())) return;
 
     setIsProcessing(true);
     setError("");
@@ -164,7 +218,7 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
           {/* File Upload Section */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Upload CAS File
+              {currentFormat.label}
             </label>
             <div
               className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -179,7 +233,7 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf"
+                accept={currentFormat.accept}
                 onChange={handleFileSelect}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isProcessing}
@@ -205,10 +259,10 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
                 <div className="space-y-2">
                   <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
                   <div className="text-sm font-medium text-foreground">
-                    Drop your CAS file here or click to browse
+                    Drop your {currentFormat.label.toLowerCase()} here or click to browse
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Supports PDF files from NSDL/CDSL
+                    {currentFormat.description}
                   </div>
                 </div>
               )}
@@ -221,36 +275,37 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
                 className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                 onClick={(e) => {
                   e.preventDefault();
-                  // In a real app, this would open a help modal or external link
-                  alert("CAS (Consolidated Account Statement) is a document that contains all your holdings across different brokers. You can download it from your broker's website or from NSDL/CDSL directly.");
+                  alert(currentFormat.helpText);
                 }}
               >
                 <ExternalLink size={12} />
-                How to generate CAS?
+                {broker === "Other" ? "How to generate CAS?" : "How to export holdings?"}
               </a>
             </div>
           </div>
 
-          {/* Password Field */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter CAS password"
-                className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm text-foreground"
-                disabled={isProcessing}
-              />
+          {/* Password Field - Only show for CAS files (Other broker) */}
+          {broker === "Other" && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter CAS password"
+                  className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm text-foreground"
+                  disabled={isProcessing}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Password used to protect your CAS file
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Password used to protect your CAS file
-            </div>
-          </div>
+          )}
 
           {/* Error Message */}
           {error && (

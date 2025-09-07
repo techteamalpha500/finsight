@@ -640,11 +640,14 @@ export async function searchStockCompanies(query: string, exchange?: string): Pr
 // API Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://your-api-gateway-url';
 
-// CAS Import API function - Parse CAS file
+// CAS Import API function - Parse file
 export async function parseCASFile(file: File, password: string, broker: string): Promise<any> {
   try {
     // Convert file to base64
     const fileContent = await fileToBase64(file);
+    
+    // Get file extension
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     
     const response = await fetch(`${API_BASE_URL}/parse-cas`, {
       method: 'POST',
@@ -656,7 +659,8 @@ export async function parseCASFile(file: File, password: string, broker: string)
       body: JSON.stringify({
         broker,
         file_content: fileContent,
-        password
+        password,
+        file_extension: fileExtension
       })
     });
 
