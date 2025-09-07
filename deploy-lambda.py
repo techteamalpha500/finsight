@@ -121,6 +121,21 @@ def build_lambda_packages():
                 
                 print(f"   ✅ Verified all critical dependencies for {func['name']}: {required_deps}")
             
+            elif func['name'] == 'import-stocks':
+                required_deps = ['boto3', 'openpyxl', 'PyPDF2', 'pdfplumber']
+                missing_deps = []
+                
+                for dep in required_deps:
+                    dep_dir = build_dir / dep
+                    if not dep_dir.exists():
+                        missing_deps.append(dep)
+                
+                if missing_deps:
+                    print(f"   ❌ ERROR: Missing dependencies in {func['name']} build directory: {missing_deps}")
+                    sys.exit(1)
+                
+                print(f"   ✅ Verified all critical dependencies for {func['name']}: {required_deps}")
+            
             print(f"   ✅ {func['name']} dependencies installed successfully")
         
         # Create deployment ZIP
@@ -155,6 +170,31 @@ def build_lambda_packages():
                     print(f"   ❌ ERROR: {func['name']} ZIP is missing critical files!")
                     if not has_main:
                         print(f"      Missing: main.py")
+                    if missing_deps:
+                        print(f"      Missing dependencies: {missing_deps}")
+                    sys.exit(1)
+        
+        elif func['name'] == 'import-stocks':
+            print(f"   📦 Verifying {func['name']} ZIP contents...")
+            with zipfile.ZipFile(zip_file, 'r') as zipf:
+                file_list = zipf.namelist()
+                required_deps = ['boto3', 'openpyxl', 'PyPDF2', 'pdfplumber']
+                
+                has_index = any('index.py' in f for f in file_list)
+                has_deps = {}
+                for dep in required_deps:
+                    has_deps[dep] = any(dep in f for f in file_list)
+                
+                print(f"      📄 Contains index.py: {has_index}")
+                for dep, has_it in has_deps.items():
+                    print(f"      📄 Contains {dep}: {has_it}")
+                print(f"      📄 Total files: {len(file_list)}")
+                
+                missing_deps = [dep for dep, has_it in has_deps.items() if not has_it]
+                if not has_index or missing_deps:
+                    print(f"   ❌ ERROR: {func['name']} ZIP is missing critical files!")
+                    if not has_index:
+                        print(f"      Missing: index.py")
                     if missing_deps:
                         print(f"      Missing dependencies: {missing_deps}")
                     sys.exit(1)

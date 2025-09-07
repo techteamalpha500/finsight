@@ -129,21 +129,30 @@ class CASParser:
                 
                 if load_workbook is None:
                     print("❌ openpyxl.load_workbook is None - library not available")
-                    raise Exception("openpyxl library not available for Excel parsing")
+                    print("Available modules:")
+                    import sys
+                    for module in sys.modules:
+                        if 'openpyxl' in module or 'xl' in module:
+                            print(f"  - {module}")
+                    raise Exception("openpyxl library not available for Excel parsing. Please ensure openpyxl is installed in the Lambda package.")
                 
                 print("Attempting to load Excel workbook...")
-                # Read Excel content
-                workbook = load_workbook(io.BytesIO(file_content))
-                worksheet = workbook.active
-                print(f"Excel workbook loaded successfully. Active sheet: {worksheet.title}")
-                
-                # Convert Excel rows to list format
-                for row in worksheet.iter_rows(values_only=True):
-                    # Convert None values to empty strings and ensure all values are strings
-                    row_data = [str(cell) if cell is not None else '' for cell in row]
-                    rows.append(row_data)
-                
-                print(f"Extracted {len(rows)} rows from Excel file")
+                try:
+                    # Read Excel content
+                    workbook = load_workbook(io.BytesIO(file_content))
+                    worksheet = workbook.active
+                    print(f"Excel workbook loaded successfully. Active sheet: {worksheet.title}")
+                    
+                    # Convert Excel rows to list format
+                    for row in worksheet.iter_rows(values_only=True):
+                        # Convert None values to empty strings and ensure all values are strings
+                        row_data = [str(cell) if cell is not None else '' for cell in row]
+                        rows.append(row_data)
+                    
+                    print(f"Extracted {len(rows)} rows from Excel file")
+                except Exception as e:
+                    print(f"❌ Error loading Excel workbook: {e}")
+                    raise Exception(f"Failed to load Excel workbook: {str(e)}")
                     
             else:
                 raise Exception(f"Unsupported file format: {file_extension}")
