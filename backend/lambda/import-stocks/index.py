@@ -76,13 +76,13 @@ class CASParser:
     """CAS (Consolidated Account Statement) Parser for different brokers"""
     
     def __init__(self, broker: str):
-        self.broker = broker.lower()
+        self.broker = broker  # Keep original case
         self.supported_brokers = {
-            'zerodha': self._parse_zerodha_cas,
-            'groww': self._parse_groww_cas,
-            'upstox': self._parse_upstox_cas,
-            'angel': self._parse_angel_cas,
-            'other': self._parse_generic_cas
+            'Zerodha': self._parse_zerodha_cas,
+            'Groww': self._parse_groww_cas,
+            'Upstox': self._parse_upstox_cas,
+            'Angel': self._parse_angel_cas,
+            'Other': self._parse_generic_cas
         }
     
     def parse_cas_file(self, file_content: bytes, password: str = None, file_extension: str = None) -> Dict[str, Any]:
@@ -149,13 +149,13 @@ class CASParser:
                 raise Exception(f"Unsupported file format: {file_extension}")
             
             # Parse based on broker
-            if self.broker == 'zerodha':
+            if self.broker == 'Zerodha':
                 return self._parse_zerodha_csv(rows)
-            elif self.broker == 'groww':
+            elif self.broker == 'Groww':
                 return self._parse_groww_csv(rows)
-            elif self.broker == 'upstox':
+            elif self.broker == 'Upstox':
                 return self._parse_upstox_csv(rows)
-            elif self.broker == 'angel':
+            elif self.broker == 'Angel':
                 return self._parse_angel_csv(rows)
             else:
                 return self._parse_generic_csv(rows)
@@ -165,13 +165,13 @@ class CASParser:
     
     def _get_mock_data_for_broker(self) -> Dict[str, Any]:
         """Get mock data based on broker"""
-        if self.broker == 'zerodha':
+        if self.broker == 'Zerodha':
             return self._get_mock_zerodha_data()
-        elif self.broker == 'groww':
+        elif self.broker == 'Groww':
             return self._get_mock_groww_data()
-        elif self.broker == 'upstox':
+        elif self.broker == 'Upstox':
             return self._get_mock_upstox_data()
-        elif self.broker == 'angel':
+        elif self.broker == 'Angel':
             return self._get_mock_angel_data()
         else:
             return self._get_mock_other_data()
