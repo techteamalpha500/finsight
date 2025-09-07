@@ -179,10 +179,13 @@ def build_lambda_packages():
         
         print(f"   ✅ Created {zip_file}")
         
-        # Copy to terraform directory for Terraform to use
+        # Copy to terraform directory for Terraform to use (if different)
         terraform_zip = Path(f"terraform/{func['name'].replace('-', '_')}.zip")
-        shutil.copy2(zip_file, terraform_zip)
-        print(f"   ✅ Copied to {terraform_zip} for Terraform deployment")
+        if zip_file != terraform_zip:
+            shutil.copy2(zip_file, terraform_zip)
+            print(f"   ✅ Copied to {terraform_zip} for Terraform deployment")
+        else:
+            print(f"   ✅ ZIP already in terraform directory: {terraform_zip}")
         print(f"   📊 Terraform ZIP size: {terraform_zip.stat().st_size / (1024*1024):.1f} MB")
         
         # Comprehensive ZIP verification for all functions
