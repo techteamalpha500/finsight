@@ -105,8 +105,11 @@ def _is_symbol_company_match(symbol, company_name):
 def _find_existing_holding(user_id, stock):
     """Find existing holding using multiple matching strategies"""
     try:
+        print(f"🔍 _find_existing_holding called for: {stock.get('name', 'Unknown')} (ISIN: {stock.get('isin', 'None')})")
+        
         # Strategy 1: Match by ISIN if available
         if 'isin' in stock and stock['isin']:
+            print(f"🔍 Strategy 1: Trying ISIN match for {stock['isin']}")
             # First try exact ISIN match
             scan_response = holdings_table.scan(
                 FilterExpression='user_id = :user_id AND contains(#data, :isin)',
@@ -118,12 +121,16 @@ def _find_existing_holding(user_id, stock):
             )
             
             items = scan_response.get('Items', [])
+            print(f"🔍 ISIN scan returned {len(items)} items")
             # Filter for exact ISIN match in data.isin field
             isin_matches = [h for h in items if h.get('data', {}).get('isin') == stock['isin']]
+            print(f"🔍 Exact ISIN matches: {len(isin_matches)}")
             if isin_matches:
+                print(f"✅ ISIN match found: {isin_matches[0].get('data', {}).get('name', 'Unknown')}")
                 return isin_matches[0]
         
         # Strategy 2: Match by symbol (exact match)
+        print(f"🔍 Strategy 2: Trying symbol match for {stock.get('symbol', 'None')}")
         try:
             symbol_response = holdings_table.query(
                 IndexName='user_id-symbol-index',
@@ -134,15 +141,19 @@ def _find_existing_holding(user_id, stock):
                 }
             )
             symbol_matches = symbol_response.get('Items', [])
+            print(f"🔍 Symbol query returned {len(symbol_matches)} matches")
             if symbol_matches:
+                print(f"✅ Symbol match found: {symbol_matches[0].get('data', {}).get('name', 'Unknown')}")
                 return symbol_matches[0]
         except Exception as e:
             print(f"Symbol query failed: {e}")
         
         # Strategy 3: Match by name similarity (for cases like "Tata Motors Limited" vs "TATAMOTORS")
         if 'isin' in stock and stock['isin']:
+            print(f"🔍 Strategy 3: Trying name similarity match")
             # Get company name from stock companies table
             company_name = _get_company_name_by_isin(stock['isin'])
+            print(f"🔍 Company name from ISIN: {company_name}")
             if company_name:
                 # Scan all holdings and check for name similarity
                 all_holdings_response = holdings_table.scan(
@@ -151,16 +162,21 @@ def _find_existing_holding(user_id, stock):
                 )
                 
                 all_holdings = all_holdings_response.get('Items', [])
+                print(f"🔍 Scanning {len(all_holdings)} existing holdings for name similarity")
                 for holding in all_holdings:
                     holding_name = holding.get('data', {}).get('name', '').lower()
                     holding_symbol = holding.get('data', {}).get('symbol', '').lower()
                     
+                    print(f"🔍 Checking holding: {holding_name} (symbol: {holding_symbol})")
+                    
                     # Check if company name matches holding name
                     if holding_name and (company_name.lower() in holding_name or holding_name in company_name.lower()):
+                        print(f"✅ Name match found: {holding_name}")
                         return holding
                     
                     # Check if company name matches holding symbol (for cases like TATAMOTORS)
                     if holding_symbol and _is_symbol_company_match(holding_symbol, company_name):
+                        print(f"✅ Symbol-company match found: {holding_symbol} -> {company_name}")
                         return holding
         
         return None
@@ -856,7 +872,13 @@ def handler(event, context):
                                 continue
                         
                         # Find existing holding using comprehensive matching
+                        print(f"🔍 Looking for existing holding for stock: {stock.get('name', 'Unknown')} (Symbol: {stock.get('symbol', 'Unknown')}, ISIN: {stock.get('isin', 'None')})")
                         existing_holding = _find_existing_holding(user_id, stock)
+                        
+                        if existing_holding:
+                            print(f"✅ Found existing holding: {existing_holding.get('data', {}).get('name', 'Unknown')} (ID: {existing_holding.get('id', 'Unknown')})")
+                        else:
+                            print(f"❌ No existing holding found, will create new one")
                         
                         if existing_holding:
                             # Update existing holding
