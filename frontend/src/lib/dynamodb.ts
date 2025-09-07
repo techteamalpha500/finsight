@@ -699,12 +699,16 @@ export async function parseCASFile(file: File, password: string, broker: string)
 // CAS Import API function - Import parsed data to holdings
 export async function importCASData(casData: any): Promise<any> {
   try {
+    console.log('🔍 importCASData called with:', casData);
+    console.log('🔍 PORTFOLIO_API_URL:', PORTFOLIO_API_URL);
+    
     // Check if API URL is configured
     if (PORTFOLIO_API_URL.includes('your-portfolio-api-gateway-url')) {
       console.warn('⚠️ Portfolio API URL not configured. Using mock import for development.');
       return getMockImportResult(casData);
     }
 
+    console.log('🚀 Calling import API with data:', JSON.stringify(casData, null, 2));
     const response = await fetch(`${PORTFOLIO_API_URL}/holdings/import`, {
       method: 'POST',
       headers: {
