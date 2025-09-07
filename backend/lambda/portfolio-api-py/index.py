@@ -45,6 +45,27 @@ def _to_json(o):
     return o
 
 
+def _get_company_name_by_isin(isin):
+    """Get standardized company name from StockCompanies table by ISIN"""
+    try:
+        if not isin:
+            return None
+            
+        response = stock_companies_table.scan(
+            FilterExpression='isin = :isin',
+            ExpressionAttributeValues={':isin': isin}
+        )
+        
+        items = response.get('Items', [])
+        if items:
+            # Return the first match (should be unique by ISIN)
+            return items[0].get('name', items[0].get('company_name', ''))
+        
+        return None
+    except Exception as e:
+        print(f"Error looking up company name for ISIN {isin}: {e}")
+        return None
+
 def _convert_floats_to_decimals(obj):
     """Convert float values to Decimal types for DynamoDB compatibility"""
     if isinstance(obj, dict):
@@ -785,8 +806,13 @@ def handler(event, context):
                             new_current = current_value + float(stock['currentValue'])
                             now = datetime.utcnow().isoformat()
                             
+                            # Get standardized company name if ISIN is available
+                            standardized_name = None
+                            if 'isin' in stock and stock['isin']:
+                                standardized_name = _get_company_name_by_isin(stock['isin'])
+                            
                             # Update both the nested data and top-level fields
-                            # Also update ISIN and sector if available and missing
+                            # Also update ISIN, sector, and name if available and missing
                             update_expression = "SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at"
                             expression_values = {
                                 ':units': Decimal(str(new_units)),
@@ -805,6 +831,11 @@ def handler(event, context):
                                 update_expression += ", #data.sector = :sector"
                                 expression_values[':sector'] = stock['sector']
                             
+                            # Update name to standardized name if available
+                            if standardized_name and standardized_name != existing_data.get('name'):
+                                update_expression += ", #data.name = :name"
+                                expression_values[':name'] = standardized_name
+                            
                             holdings_table.update_item(
                                 Key={'id': existing['id']},
                                 UpdateExpression=update_expression,
@@ -819,12 +850,20 @@ def handler(event, context):
                             holding_id = str(uuid.uuid4())
                             now = datetime.utcnow().isoformat()
                             
+                            # Get standardized company name if ISIN is available
+                            standardized_name = None
+                            if 'isin' in stock and stock['isin']:
+                                standardized_name = _get_company_name_by_isin(stock['isin'])
+                            
+                            # Use standardized name if available, otherwise use broker name
+                            display_name = standardized_name if standardized_name else stock['name']
+                            
                             # Create holding data object (nested format)
                             holding_data = {
                                 'id': holding_id,
                                 'user_id': user_id,
                                 'instrumentClass': 'Stocks',
-                                'name': stock['name'],
+                                'name': display_name,  # Use standardized name
                                 'symbol': stock['symbol'],
                                 'isin': stock.get('isin', ''),  # Add ISIN if available
                                 'sector': stock.get('sector', ''),  # Add sector if available
