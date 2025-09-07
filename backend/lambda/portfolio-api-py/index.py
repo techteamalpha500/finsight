@@ -746,27 +746,43 @@ def handler(event, context):
                         if existing_holdings:
                             # Update existing holding
                             existing = existing_holdings[0]
-                            new_units = float(existing.get('units', 0)) + float(stock['units'])
-                            new_invested = float(existing.get('investedAmount', 0)) + float(stock['investedAmount'])
-                            new_current = float(existing.get('currentValue', 0)) + float(stock['currentValue'])
+                            existing_data = existing.get('data', {})
                             
+                            # Extract current values from nested data structure
+                            current_units = float(existing_data.get('units', 0))
+                            current_invested = float(existing_data.get('investedAmount', 0))
+                            current_value = float(existing_data.get('currentValue', 0))
+                            
+                            # Calculate new values
+                            new_units = current_units + float(stock['units'])
+                            new_invested = current_invested + float(stock['investedAmount'])
+                            new_current = current_value + float(stock['currentValue'])
+                            now = datetime.utcnow().isoformat()
+                            
+                            # Update both the nested data and top-level fields
                             holdings_table.update_item(
-                                Key={'user_id': user_id, 'id': existing['id']},
-                                UpdateExpression="SET units = :units, investedAmount = :invested, currentValue = :current, updated_at = :updated_at",
+                                Key={'id': existing['id']},
+                                UpdateExpression="SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at",
+                                ExpressionAttributeNames={
+                                    '#data': 'data'
+                                },
                                 ExpressionAttributeValues={
                                     ':units': Decimal(str(new_units)),
                                     ':invested': Decimal(str(new_invested)),
                                     ':current': Decimal(str(new_current)),
-                                    ':updated_at': datetime.utcnow().isoformat()
+                                    ':updated_at': now
                                 }
                             )
                             updated_count += 1
                         else:
                             # Add new holding
                             holding_id = str(uuid.uuid4())
-                            new_holding = {
-                                'user_id': user_id,
+                            now = datetime.utcnow().isoformat()
+                            
+                            # Create holding data object (nested format)
+                            holding_data = {
                                 'id': holding_id,
+                                'user_id': user_id,
                                 'instrumentClass': 'Stocks',
                                 'name': stock['name'],
                                 'symbol': stock['symbol'],
@@ -776,8 +792,21 @@ def handler(event, context):
                                 'currentValue': Decimal(str(stock['currentValue'])),
                                 'asset_class': 'Stocks',
                                 'portfolio_role': 'Equity',
-                                'created_at': datetime.utcnow().isoformat(),
-                                'updated_at': datetime.utcnow().isoformat()
+                                'created_at': now,
+                                'updated_at': now
+                            }
+                            
+                            # Create main holding item with nested data structure
+                            new_holding = {
+                                'id': holding_id,
+                                'user_id': user_id,
+                                'portfolio_id': user_id,  # Using user_id as portfolio_id for consistency
+                                'symbol': stock['symbol'],  # Top-level symbol for GSI
+                                'data': holding_data,
+                                'asset_class': 'Stocks',
+                                'portfolio_role': 'Equity',
+                                'created_at': now,
+                                'updated_at': now
                             }
                             
                             holdings_table.put_item(Item=new_holding)

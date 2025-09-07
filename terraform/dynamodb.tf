@@ -302,10 +302,22 @@ resource "aws_dynamodb_table" "holdings" {
     type = "S"
   }
 
+  attribute {
+    name = "symbol"
+    type = "S"
+  }
+
   global_secondary_index {
     name            = "userId-createdAt-index"
     hash_key        = "user_id"
     range_key       = "created_at"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "user_id-symbol-index"
+    hash_key        = "user_id"
+    range_key       = "symbol"
     projection_type = "ALL"
   }
 

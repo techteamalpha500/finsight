@@ -8,15 +8,37 @@ from typing import Dict, List, Any, Optional
 # File parsing libraries
 try:
     import PyPDF2
-    import pdfplumber
-    import csv
-    import io
-    from openpyxl import load_workbook
-except ImportError:
-    # Fallback for environments without libraries
+    print("✅ PyPDF2 imported successfully")
+except ImportError as e:
+    print(f"❌ PyPDF2 import failed: {e}")
     PyPDF2 = None
+
+try:
+    import pdfplumber
+    print("✅ pdfplumber imported successfully")
+except ImportError as e:
+    print(f"❌ pdfplumber import failed: {e}")
     pdfplumber = None
+
+try:
+    import csv
+    print("✅ csv imported successfully")
+except ImportError as e:
+    print(f"❌ csv import failed: {e}")
     csv = None
+
+try:
+    import io
+    print("✅ io imported successfully")
+except ImportError as e:
+    print(f"❌ io import failed: {e}")
+    io = None
+
+try:
+    from openpyxl import load_workbook
+    print("✅ openpyxl.load_workbook imported successfully")
+except ImportError as e:
+    print(f"❌ openpyxl import failed: {e}")
     load_workbook = None
 
 # AWS SDK
@@ -102,18 +124,26 @@ class CASParser:
                 rows = list(csv_reader)
                 
             elif file_extension == '.xlsx':
+                print(f"Processing Excel file with extension: {file_extension}")
+                print(f"load_workbook available: {load_workbook is not None}")
+                
                 if load_workbook is None:
+                    print("❌ openpyxl.load_workbook is None - library not available")
                     raise Exception("openpyxl library not available for Excel parsing")
                 
+                print("Attempting to load Excel workbook...")
                 # Read Excel content
                 workbook = load_workbook(io.BytesIO(file_content))
                 worksheet = workbook.active
+                print(f"Excel workbook loaded successfully. Active sheet: {worksheet.title}")
                 
                 # Convert Excel rows to list format
                 for row in worksheet.iter_rows(values_only=True):
                     # Convert None values to empty strings and ensure all values are strings
                     row_data = [str(cell) if cell is not None else '' for cell in row]
                     rows.append(row_data)
+                
+                print(f"Extracted {len(rows)} rows from Excel file")
                     
             else:
                 raise Exception(f"Unsupported file format: {file_extension}")
