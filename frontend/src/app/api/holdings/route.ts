@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-d
 import { getUserSubFromJwt } from "../_utils/auth";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" }));
-const INVEST_TABLE = process.env.INVEST_TABLE || "InvestApp";
+const HOLDINGS_TABLE = process.env.HOLDINGS_TABLE || "holdings";
 
 export async function POST(req: NextRequest) {
   const sub = await getUserSubFromJwt(req);
@@ -14,17 +14,17 @@ export async function POST(req: NextRequest) {
   const holdingId = holding.id || crypto.randomUUID();
   const now = new Date().toISOString();
   await ddb.send(new PutCommand({
-    TableName: INVEST_TABLE,
+    TableName: HOLDINGS_TABLE,
     Item: {
-      pk: `USER#${sub}`,
-      sk: `HOLDING#${portfolioId}#${holdingId}`,
-      entityType: "HOLDING",
-      portfolioId,
-      holdingId,
+      id: holdingId,
+      user_id: sub,
+      portfolio_id: portfolioId,
+      symbol: holding.symbol,
       data: holding,
-      updatedAt: now,
-      GSI1PK: `PORTFOLIO#${portfolioId}`,
-      GSI1SK: `HOLDING#${holdingId}`,
+      asset_class: holding.asset_class || 'Stocks',
+      portfolio_role: holding.portfolio_role || 'Equity',
+      created_at: now,
+      updated_at: now
     }
   }));
   return NextResponse.json({ holdingId });
@@ -37,12 +37,12 @@ export async function GET(req: NextRequest) {
   const portfolioId = searchParams.get("portfolioId");
   if (!portfolioId) return NextResponse.json({ error: "Missing portfolioId" }, { status: 400 });
   const res = await ddb.send(new QueryCommand({
-    TableName: INVEST_TABLE,
-    KeyConditionExpression: "pk = :pk AND begins_with(#sk, :sk)",
-    ExpressionAttributeValues: { ":pk": `USER#${sub}`, ":sk": `HOLDING#${portfolioId}#` },
-    ExpressionAttributeNames: { "#sk": "sk" },
+    TableName: HOLDINGS_TABLE,
+    IndexName: 'user_id-portfolio_id-index',
+    KeyConditionExpression: "user_id = :user_id AND portfolio_id = :portfolio_id",
+    ExpressionAttributeValues: { ":user_id": sub, ":portfolio_id": portfolioId },
   }));
-  const items = (res.Items || []).map((it: any) => ({ id: it.holdingId, ...(it.data || {}) }));
+  const items = (res.Items || []).map((it: any) => ({ id: it.id, ...(it.data || {}) }));
   return NextResponse.json({ items });
 }
 

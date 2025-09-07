@@ -219,62 +219,6 @@ def _find_existing_holding(user_id, stock):
                 print(f"✅ Name-symbol match found: {imported_name} -> {holding_symbol}")
                 return holding
         
-        # Strategy 5: Check InvestApp table for UI-created stocks (fallback)
-        print(f"🔍 Strategy 5: Checking InvestApp table for UI-created stocks")
-        try:
-            # Check if there are any UI-created stocks in InvestApp table that might match
-            # This is a fallback for cases where UI-created stocks are in InvestApp table
-            invest_holdings_response = invest_table.scan(
-                FilterExpression='begins_with(pk, :pk) AND entityType = :entity_type',
-                ExpressionAttributeValues={
-                    ':pk': f'USER#{user_id}',  # Assuming user_id maps to sub
-                    ':entity_type': 'HOLDING'
-                }
-            )
-            
-            invest_holdings = invest_holdings_response.get('Items', [])
-            print(f"🔍 Found {len(invest_holdings)} UI-created holdings in InvestApp table")
-            
-            for holding in invest_holdings:
-                holding_data = holding.get('data', {})
-                holding_name = holding_data.get('name', '').lower()
-                holding_symbol = holding_data.get('symbol', '').lower()
-                
-                print(f"🔍 Checking UI-created holding: {holding_name} (symbol: {holding_symbol}) vs imported: {imported_name} (symbol: {imported_symbol})")
-                
-                # Check if imported name matches holding name
-                if holding_name and imported_name and (imported_name in holding_name or holding_name in imported_name):
-                    print(f"✅ UI-created name match found: {holding_name} matches {imported_name}")
-                    # Convert InvestApp structure to holdings structure for consistency
-                    converted_holding = {
-                        'id': holding_data.get('id', ''),
-                        'user_id': user_id,
-                        'data': holding_data
-                    }
-                    return converted_holding
-                
-                # Check if imported symbol matches holding name
-                if holding_name and imported_symbol and _is_symbol_company_match(imported_symbol, holding_name):
-                    print(f"✅ UI-created symbol-name match found: {imported_symbol} -> {holding_name}")
-                    converted_holding = {
-                        'id': holding_data.get('id', ''),
-                        'user_id': user_id,
-                        'data': holding_data
-                    }
-                    return converted_holding
-                
-                # Check if imported name matches holding symbol
-                if holding_symbol and imported_name and _is_symbol_company_match(holding_symbol, imported_name):
-                    print(f"✅ UI-created name-symbol match found: {imported_name} -> {holding_symbol}")
-                    converted_holding = {
-                        'id': holding_data.get('id', ''),
-                        'user_id': user_id,
-                        'data': holding_data
-                    }
-                    return converted_holding
-                    
-        except Exception as e:
-            print(f"InvestApp table check failed: {e}")
         
         return None
         
@@ -998,115 +942,41 @@ def handler(event, context):
                             if 'isin' in stock and stock['isin']:
                                 standardized_name = _get_company_name_by_isin(stock['isin'])
                             
-<<<<<<< HEAD
-                            # Check if this is from InvestApp table (has pk/sk structure)
-                            if 'pk' in existing and 'sk' in existing:
-                                # This is from InvestApp table - update there
-                                updated_data = existing_data.copy()
-                                updated_data['units'] = new_units
-                                updated_data['investedAmount'] = new_invested
-                                updated_data['currentValue'] = new_current
-                                updated_data['updated_at'] = now
-                                
-                                # Add ISIN if available and missing
-                                if 'isin' in stock and stock['isin'] and not updated_data.get('isin'):
-                                    updated_data['isin'] = stock['isin']
-                                
-                                # Add sector if available and missing
-                                if 'sector' in stock and stock['sector'] and not updated_data.get('sector'):
-                                    updated_data['sector'] = stock['sector']
-                                
-                                # Update name to standardized name if available
-                                if standardized_name and standardized_name != updated_data.get('name'):
-                                    updated_data['name'] = standardized_name
-                                
-                                # Update in InvestApp table
-                                invest_table.update_item(
-                                    Key={
-                                        'pk': existing['pk'],
-                                        'sk': existing['sk']
-                                    },
-                                    UpdateExpression="SET #data = :data, updatedAt = :updated_at",
-                                    ExpressionAttributeNames={
-                                        '#data': 'data'
-                                    },
-                                    ExpressionAttributeValues={
-                                        ':data': _convert_floats_to_decimals(updated_data),
-                                        ':updated_at': now
-                                    }
-                                )
-                            else:
-                                # This is from holdings table - update there
-                                update_expression = "SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at"
-                                expression_values = {
-                                    ':units': Decimal(str(new_units)),
-                                    ':invested': Decimal(str(new_invested)),
-                                    ':current': Decimal(str(new_current)),
-                                    ':updated_at': now
-                                }
-                                
-                                # Add ISIN if available and missing
-                                if 'isin' in stock and stock['isin'] and not existing_data.get('isin'):
-                                    update_expression += ", #data.isin = :isin"
-                                    expression_values[':isin'] = stock['isin']
-                                
-                                # Add sector if available and missing
-                                if 'sector' in stock and stock['sector'] and not existing_data.get('sector'):
-                                    update_expression += ", #data.sector = :sector"
-                                    expression_values[':sector'] = stock['sector']
-                                
-                                # Update name to standardized name if available
-                                if standardized_name and standardized_name != existing_data.get('name'):
-                                    update_expression += ", #data.name = :name"
-                                    expression_values[':name'] = standardized_name
-                                
-                                holdings_table.update_item(
-                                    Key={'id': existing['id']},
-                                    UpdateExpression=update_expression,
-                                    ExpressionAttributeNames={
-                                        '#data': 'data'
-                                    },
-                                    ExpressionAttributeValues=expression_values
-                                )
-=======
-                            # Update the data object
-                            updated_data = existing_data.copy()
-                            updated_data['units'] = new_units
-                            updated_data['investedAmount'] = new_invested
-                            updated_data['currentValue'] = new_current
-                            updated_data['updated_at'] = now
+                            # Update in holdings table
+                            update_expression = "SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at"
+                            expression_values = {
+                                ':units': Decimal(str(new_units)),
+                                ':invested': Decimal(str(new_invested)),
+                                ':current': Decimal(str(new_current)),
+                                ':updated_at': now
+                            }
                             
                             # Add ISIN if available and missing
-                            if 'isin' in stock and stock['isin'] and not updated_data.get('isin'):
-                                updated_data['isin'] = stock['isin']
+                            if 'isin' in stock and stock['isin'] and not existing_data.get('isin'):
+                                update_expression += ", #data.isin = :isin"
+                                expression_values[':isin'] = stock['isin']
                             
                             # Add sector if available and missing
-                            if 'sector' in stock and stock['sector'] and not updated_data.get('sector'):
-                                updated_data['sector'] = stock['sector']
+                            if 'sector' in stock and stock['sector'] and not existing_data.get('sector'):
+                                update_expression += ", #data.sector = :sector"
+                                expression_values[':sector'] = stock['sector']
                             
                             # Update name to standardized name if available
-                            if standardized_name and standardized_name != updated_data.get('name'):
-                                updated_data['name'] = standardized_name
+                            if standardized_name and standardized_name != existing_data.get('name'):
+                                update_expression += ", #data.name = :name"
+                                expression_values[':name'] = standardized_name
                             
-                            # Update the holding in InvestApp table
-                            invest_table.update_item(
-                                Key={
-                                    'pk': existing['pk'],
-                                    'sk': existing['sk']
-                                },
-                                UpdateExpression="SET #data = :data, updatedAt = :updated_at",
+                            holdings_table.update_item(
+                                Key={'id': existing['id']},
+                                UpdateExpression=update_expression,
                                 ExpressionAttributeNames={
                                     '#data': 'data'
                                 },
-                                ExpressionAttributeValues={
-                                    ':data': _convert_floats_to_decimals(updated_data),
-                                    ':updated_at': now
-                                }
+                                ExpressionAttributeValues=expression_values
                             )
->>>>>>> edca6fb77f2d1226bf32a61c927ed7b1f85f7145
                             updated_count += 1
                         else:
-                            # Add new holding to InvestApp table
+                            # Add new holding to holdings table
                             holding_id = str(uuid.uuid4())
                             now = datetime.utcnow().isoformat()
                             
@@ -1136,20 +1006,20 @@ def handler(event, context):
                                 'updated_at': now
                             }
                             
-                            # Create new holding item in InvestApp table structure
+                            # Create new holding item in holdings table structure
                             new_holding = {
-                                'pk': f'USER#{user_sub}',
-                                'sk': f'HOLDING#{portfolio_id}#{holding_id}',
-                                'entityType': 'HOLDING',
-                                'portfolioId': portfolio_id,
-                                'holdingId': holding_id,
-                                'data': _convert_floats_to_decimals(holding_data),
-                                'updatedAt': now,
-                                'GSI1PK': f'PORTFOLIO#{portfolio_id}',
-                                'GSI1SK': f'HOLDING#{holding_id}',
+                                'id': holding_id,
+                                'user_id': user_id,
+                                'portfolio_id': user_id,  # Using user_id as portfolio_id for consistency
+                                'symbol': stock['symbol'],  # Top-level symbol for GSI
+                                'data': holding_data,
+                                'asset_class': 'Stocks',
+                                'portfolio_role': 'Equity',
+                                'created_at': now,
+                                'updated_at': now
                             }
                             
-                            invest_table.put_item(Item=new_holding)
+                            holdings_table.put_item(Item=new_holding)
                             imported_count += 1
                             
                     except Exception as stock_error:
