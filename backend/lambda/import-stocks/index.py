@@ -626,27 +626,99 @@ class CASParser:
     
     # CSV parsing methods for each broker
     def _parse_zerodha_csv(self, rows: List[List[str]]) -> Dict[str, Any]:
-        """Parse Zerodha CSV export"""
+        """Parse Zerodha Excel export"""
         try:
             stocks = []
-            # Skip header row if present
-            data_rows = rows[1:] if len(rows) > 1 and any('symbol' in str(cell).lower() for cell in rows[0]) else rows
             
-            for row in data_rows:
-                # Zerodha export format: Symbol, Company Name, Quantity, LTP, Current Value, Invested Value
-                if len(row) >= 6:
-                    try:
-                        stock = {
-                            'name': str(row[1]).strip() if row[1] else 'Unknown',
-                            'symbol': str(row[0]).strip().upper() if row[0] else 'UNKNOWN',
-                            'units': float(row[2].replace(',', '')) if row[2] else 0,
-                            'price': float(row[3].replace(',', '')) if row[3] else 0,
-                            'currentValue': float(row[4].replace(',', '')) if row[4] else 0,
-                            'investedAmount': float(row[5].replace(',', '')) if row[5] else 0
-                        }
-                        stocks.append(stock)
-                    except (ValueError, IndexError):
+            # Find the header row (should contain 'Symbol', 'ISIN', 'Sector', etc.)
+            header_row_index = None
+            for i, row in enumerate(rows):
+                row_text = ' '.join([str(cell).lower() for cell in row if cell])
+                if 'symbol' in row_text and 'isin' in row_text and 'sector' in row_text:
+                    header_row_index = i
+                    break
+            
+            if header_row_index is None:
+                # Fallback: look for any row with 'symbol'
+                for i, row in enumerate(rows):
+                    row_text = ' '.join([str(cell).lower() for cell in row if cell])
+                    if 'symbol' in row_text:
+                        header_row_index = i
+                        break
+            
+            if header_row_index is None:
+                # If no header found, assume first row is header
+                header_row_index = 0
+            
+            # Get header row to understand column positions
+            header_row = rows[header_row_index]
+            
+            # Find column indices (Zerodha Excel format)
+            symbol_col = None
+            isin_col = None
+            sector_col = None
+            quantity_col = None
+            avg_price_col = None
+            prev_close_col = None
+            
+            for i, cell in enumerate(header_row):
+                cell_text = str(cell).lower().strip()
+                if 'symbol' in cell_text:
+                    symbol_col = i
+                elif 'isin' in cell_text:
+                    isin_col = i
+                elif 'sector' in cell_text:
+                    sector_col = i
+                elif 'quantity available' in cell_text:
+                    quantity_col = i
+                elif 'average price' in cell_text:
+                    avg_price_col = i
+                elif 'previous closing price' in cell_text:
+                    prev_close_col = i
+            
+            # Debug: Print column positions
+            print(f"DEBUG: Column positions - Symbol: {symbol_col}, Quantity: {quantity_col}, AvgPrice: {avg_price_col}, PrevClose: {prev_close_col}")
+            
+            # Parse stock data rows (starting after header)
+            for row in rows[header_row_index + 1:]:
+                # Skip empty rows
+                if not any(str(cell).strip() for cell in row if cell):
+                    continue
+                
+                # Skip summary rows (contain text like 'Invested Value', 'Present Value', etc.)
+                row_text = ' '.join([str(cell).lower() for cell in row if cell])
+                if any(keyword in row_text for keyword in ['invested value', 'present value', 'unrealized p&l', 'summary', 'statement']):
+                    continue
+                
+                try:
+                    # Extract stock data
+                    symbol = str(row[symbol_col]).strip().upper() if symbol_col is not None and symbol_col < len(row) and row[symbol_col] else None
+                    quantity = float(str(row[quantity_col]).replace(',', '')) if quantity_col is not None and quantity_col < len(row) and row[quantity_col] else 0
+                    avg_price = float(str(row[avg_price_col]).replace(',', '')) if avg_price_col is not None and avg_price_col < len(row) and row[avg_price_col] else 0
+                    prev_close = float(str(row[prev_close_col]).replace(',', '')) if prev_close_col is not None and prev_close_col < len(row) and row[prev_close_col] else 0
+                    
+                    # Skip if no symbol or quantity
+                    if not symbol or quantity <= 0:
                         continue
+                    
+                    # Use previous closing price as current price, fallback to average price
+                    current_price = prev_close if prev_close > 0 else avg_price
+                    current_value = quantity * current_price
+                    invested_value = quantity * avg_price
+                    
+                    stock = {
+                        'name': symbol,  # Use symbol as name for now
+                        'symbol': symbol,
+                        'units': quantity,
+                        'price': current_price,
+                        'currentValue': current_value,
+                        'investedAmount': invested_value
+                    }
+                    stocks.append(stock)
+                    
+                except (ValueError, IndexError, TypeError) as e:
+                    # Skip invalid rows
+                    continue
             
             return {
                 'broker': 'Zerodha',

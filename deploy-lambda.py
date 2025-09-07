@@ -498,21 +498,13 @@ def deploy_terraform():
         print("📋 Planning Terraform deployment...")
         run_command(["terraform", "plan", "-out=tfplan"])
         
-        # Ask for confirmation
-        print("\n🤔 Do you want to apply these changes? (y/N)")
-        response = input().strip().lower()
+        # Apply changes automatically
+        print("\n🚀 Applying Terraform changes...")
+        run_command(["terraform", "apply", "--auto-approve", "tfplan"])
         
-        if response in ['y', 'yes']:
-            print("🚀 Applying Terraform changes...")
-            run_command(["terraform", "apply", "--auto-approve", "tfplan"])
-            
-            # Show outputs
-            print("\n✅ Deployment completed!")
-            show_deployment_outputs()
-            
-        else:
-            print("❌ Deployment cancelled by user")
-            return False
+        # Show outputs
+        print("\n✅ Deployment completed!")
+        show_deployment_outputs()
             
     finally:
         # Clean up
@@ -637,17 +629,13 @@ def main():
     # Check prerequisites
     check_prerequisites()
     
-    # Ask if user wants to create pre-built package
-    print("\n🤔 Do you want to create a pre-built import-stocks package? (y/N)")
-    print("   This is useful if Terraform deployment fails with dependencies.")
-    response = input().strip().lower()
-    
-    if response in ['y', 'yes']:
-        if create_prebuilt_package():
-            print("✅ Pre-built package created: import_stocks_fixed.zip")
-            print("📝 You can upload this manually if Terraform deployment fails")
-        else:
-            print("❌ Failed to create pre-built package")
+    # Create pre-built package automatically
+    print("\n🔧 Creating pre-built import-stocks package...")
+    if create_prebuilt_package():
+        print("✅ Pre-built package created: import_stocks_fixed.zip")
+        print("📝 You can upload this manually if Terraform deployment fails")
+    else:
+        print("❌ Failed to create pre-built package")
     
     # Build import-stocks package first (always rebuild)
     print("\n" + "="*60)
