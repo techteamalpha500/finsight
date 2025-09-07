@@ -40,9 +40,135 @@ def check_prerequisites():
         print("❌ AWS CLI is not configured. Please run 'aws configure' first.")
         sys.exit(1)
 
+def build_import_stocks_package():
+    """Build import-stocks Lambda package with dependencies - ALWAYS REBUILD"""
+    print("🔧 Building import-stocks Lambda package (ALWAYS REBUILD)...")
+    
+    # Paths for import-stocks only
+    lambda_src = Path("backend/lambda/import-stocks")
+    build_dir = Path("terraform/import_stocks_build")  # Separate build directory
+    zip_file = Path("terraform/import_stocks.zip")
+    
+    # Skip if source doesn't exist
+    if not lambda_src.exists():
+        print(f"   ⚠️  Source directory {lambda_src} not found, skipping...")
+        return False
+    
+    # ALWAYS clean up previous builds (force rebuild)
+    print(f"   🧹 ALWAYS cleaning up previous builds (force rebuild)...")
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+        print(f"   ✅ Removed existing build directory: {build_dir}")
+    if zip_file.exists():
+        zip_file.unlink()
+        print(f"   ✅ Removed existing ZIP: {zip_file}")
+    
+    # Create build directory
+    build_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copy Lambda source files
+    print(f"   📁 Copying source files from {lambda_src}...")
+    for file_path in lambda_src.rglob("*"):
+        if file_path.is_file():
+            rel_path = file_path.relative_to(lambda_src)
+            dest_path = build_dir / rel_path
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(file_path, dest_path)
+    
+    # Install dependencies
+    requirements_file = lambda_src / "requirements.txt"
+    if requirements_file.exists():
+        print(f"   📦 Installing dependencies from {requirements_file}...")
+        print(f"   🔄 ALWAYS rebuilding dependencies (no cache)...")
+        
+        # Install with --no-cache-dir and --upgrade to force rebuild
+        cmd = [
+            "pip3", "install", "-r", str(requirements_file),
+            "-t", str(build_dir), "--upgrade", "--no-cache-dir"
+        ]
+        
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(f"   ✅ Dependencies installed successfully")
+        except subprocess.CalledProcessError as e:
+            print(f"   ❌ Failed to install dependencies: {e}")
+            print(f"   📋 Error output: {e.stderr}")
+            return False
+        
+        # Verify critical dependencies
+        critical_deps = ['boto3', 'openpyxl', 'PyPDF2', 'pdfplumber']
+        print(f"   🔍 Verifying critical dependencies: {critical_deps}")
+        
+        found_deps = []
+        for dep in critical_deps:
+            dep_path = build_dir / dep
+            if dep_path.exists() or any((build_dir / dep).glob("*")):
+                found_deps.append(dep)
+        
+        if len(found_deps) == len(critical_deps):
+            print(f"   ✅ All critical dependencies verified: {found_deps}")
+        else:
+            missing = set(critical_deps) - set(found_deps)
+            print(f"   ❌ Missing critical dependencies: {missing}")
+            return False
+        
+        # Special openpyxl verification
+        print(f"   🧪 Testing openpyxl functionality...")
+        try:
+            test_cmd = [
+                "python3", "-c", 
+                "import sys; sys.path.insert(0, '{}'); import openpyxl; from openpyxl import load_workbook; print('openpyxl works!')".format(build_dir)
+            ]
+            result = subprocess.run(test_cmd, capture_output=True, text=True, check=True)
+            print(f"   ✅ openpyxl functionality verified: {result.stdout.strip()}")
+        except subprocess.CalledProcessError as e:
+            print(f"   ❌ CRITICAL ERROR: openpyxl verification failed: {e}")
+            print(f"   🚨 DEPLOYMENT ABORTED: Cannot verify openpyxl functionality!")
+            return False
+    else:
+        print(f"   ⚠️  No requirements.txt found for import-stocks")
+    
+    # Create deployment ZIP
+    print(f"   📦 Creating import-stocks deployment ZIP...")
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file_path in build_dir.rglob("*"):
+            if file_path.is_file():
+                arcname = file_path.relative_to(build_dir)
+                zipf.write(file_path, arcname)
+    
+    print(f"   ✅ Created {zip_file}")
+    
+    # Verify ZIP contents
+    print(f"   📦 Verifying import-stocks ZIP contents...")
+    with zipfile.ZipFile(zip_file, 'r') as zipf:
+        file_list = zipf.namelist()
+        critical_files = ['index.py', 'boto3', 'openpyxl', 'PyPDF2', 'pdfplumber']
+        
+        found_files = []
+        for file in critical_files:
+            if any(f.startswith(file) for f in file_list):
+                found_files.append(file)
+        
+        if len(found_files) == len(critical_files):
+            print(f"   ✅ All critical files found in ZIP: {found_files}")
+        else:
+            missing = set(critical_files) - set(found_files)
+            print(f"   ❌ Missing critical files in ZIP: {missing}")
+            return False
+    
+    # Show ZIP size
+    size_mb = zip_file.stat().st_size / (1024*1024)
+    print(f"   📊 Import-stocks ZIP size: {size_mb:.1f} MB")
+    
+    # Clean up build directory
+    shutil.rmtree(build_dir)
+    print(f"   🧹 Cleaned up build directory: {build_dir}")
+    
+    return True
+
 def build_lambda_packages():
-    """Build all Lambda deployment packages with comprehensive dependency verification"""
-    print("📦 Building Lambda deployment packages...")
+    """Build other Lambda deployment packages (excluding import-stocks)"""
+    print("📦 Building other Lambda deployment packages...")
     
     # Define all lambda functions to build with their critical dependencies
     lambda_functions = [
@@ -67,13 +193,6 @@ def build_lambda_packages():
             "critical_deps": ['boto3'],
             "main_file": "index.py"
         },
-        {
-            "name": "import-stocks",
-            "src": "backend/lambda/import-stocks",
-            "zip": "terraform/import_stocks.zip",
-            "critical_deps": ['boto3', 'openpyxl', 'PyPDF2', 'pdfplumber'],
-            "main_file": "index.py"
-        }
     ]
     
     for func in lambda_functions:
@@ -530,7 +649,18 @@ def main():
         else:
             print("❌ Failed to create pre-built package")
     
-    # Build all Lambda packages
+    # Build import-stocks package first (always rebuild)
+    print("\n" + "="*60)
+    print("🔧 BUILDING IMPORT-STOCKS PACKAGE (ALWAYS REBUILD)")
+    print("="*60)
+    if not build_import_stocks_package():
+        print("❌ Failed to build import-stocks package. Deployment aborted.")
+        return
+    
+    # Build other Lambda packages
+    print("\n" + "="*60)
+    print("🔧 BUILDING OTHER LAMBDA PACKAGES")
+    print("="*60)
     build_lambda_packages()
     
     # Deploy with Terraform
