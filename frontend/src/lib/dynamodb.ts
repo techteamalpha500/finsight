@@ -638,18 +638,26 @@ export async function searchStockCompanies(query: string, exchange?: string): Pr
 }
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://your-api-gateway-url';
+const IMPORT_STOCKS_API_URL = process.env.NEXT_PUBLIC_IMPORT_STOCKS_API_URL || 'https://your-import-stocks-url';
+const PORTFOLIO_API_URL = process.env.NEXT_PUBLIC_API_BASE_PORTFOLIO || 'https://your-portfolio-url';
 
 // CAS Import API function - Parse file
 export async function parseCASFile(file: File, password: string, broker: string): Promise<any> {
   try {
+    console.log('Starting CAS file parsing...', {
+      fileName: file.name,
+      fileSize: file.size,
+      broker,
+      apiUrl: IMPORT_STOCKS_API_URL
+    });
+
     // Convert file to base64
     const fileContent = await fileToBase64(file);
     
     // Get file extension
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     
-    const response = await fetch(`${API_BASE_URL}/parse-cas`, {
+    const response = await fetch(`${IMPORT_STOCKS_API_URL}/parse-cas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -664,15 +672,27 @@ export async function parseCASFile(file: File, password: string, broker: string)
       })
     });
 
+    console.log('API Response status:', response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('API Error response:', errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      } catch (parseError) {
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      }
     }
 
     const result = await response.json();
+    console.log('CAS parsing successful:', result);
     return result.data; // Return the parsed CAS data
   } catch (error) {
     console.error('CAS parsing API error:', error);
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`Network error: Unable to connect to ${IMPORT_STOCKS_API_URL}/parse-cas. Please check if the API is accessible.`);
+    }
     throw error;
   }
 }
@@ -680,7 +700,12 @@ export async function parseCASFile(file: File, password: string, broker: string)
 // CAS Import API function - Import parsed data to holdings
 export async function importCASData(casData: any): Promise<any> {
   try {
-    const response = await fetch(`${API_BASE_URL}/holdings/import`, {
+    console.log('Starting CAS data import...', {
+      dataKeys: Object.keys(casData),
+      apiUrl: PORTFOLIO_API_URL
+    });
+
+    const response = await fetch(`${PORTFOLIO_API_URL}/holdings/import`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -690,15 +715,27 @@ export async function importCASData(casData: any): Promise<any> {
       body: JSON.stringify(casData)
     });
 
+    console.log('Import API Response status:', response.status);
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Import API Error response:', errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      } catch (parseError) {
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      }
     }
 
     const result = await response.json();
+    console.log('CAS import successful:', result);
     return result;
   } catch (error) {
     console.error('CAS import API error:', error);
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`Network error: Unable to connect to ${PORTFOLIO_API_URL}/holdings/import. Please check if the API is accessible.`);
+    }
     throw error;
   }
 }
