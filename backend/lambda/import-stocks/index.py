@@ -693,12 +693,14 @@ class CASParser:
                 try:
                     # Extract stock data
                     symbol = str(row[symbol_col]).strip().upper() if symbol_col is not None and symbol_col < len(row) and row[symbol_col] else None
+                    isin = str(row[isin_col]).strip().upper() if isin_col is not None and isin_col < len(row) and row[isin_col] else None
+                    sector = str(row[sector_col]).strip() if sector_col is not None and sector_col < len(row) and row[sector_col] else None
                     quantity = float(str(row[quantity_col]).replace(',', '')) if quantity_col is not None and quantity_col < len(row) and row[quantity_col] else 0
                     avg_price = float(str(row[avg_price_col]).replace(',', '')) if avg_price_col is not None and avg_price_col < len(row) and row[avg_price_col] else 0
                     prev_close = float(str(row[prev_close_col]).replace(',', '')) if prev_close_col is not None and prev_close_col < len(row) and row[prev_close_col] else 0
                     
-                    # Skip if no symbol or quantity
-                    if not symbol or quantity <= 0:
+                    # Skip if no symbol, ISIN, or quantity
+                    if not symbol or not isin or quantity <= 0:
                         continue
                     
                     # Use previous closing price as current price, fallback to average price
@@ -709,6 +711,8 @@ class CASParser:
                     stock = {
                         'name': symbol,  # Use symbol as name for now
                         'symbol': symbol,
+                        'isin': isin,  # Add ISIN for matching
+                        'sector': sector,  # Add sector for reference
                         'units': quantity,
                         'price': current_price,
                         'currentValue': current_value,

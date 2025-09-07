@@ -731,17 +731,43 @@ def handler(event, context):
                                 errors.append(f"Stock {stock.get('name', 'Unknown')}: Missing field {field}")
                                 continue
                         
-                        # Check if stock already exists
-                        existing_response = holdings_table.query(
-                            IndexName='user_id-symbol-index',
-                            KeyConditionExpression='user_id = :user_id AND symbol = :symbol',
-                            ExpressionAttributeValues={
-                                ':user_id': user_id,
-                                ':symbol': stock['symbol']
-                            }
-                        )
+                        # Check if stock already exists by ISIN (if available) or symbol
+                        existing_holdings = []
                         
-                        existing_holdings = existing_response.get('Items', [])
+                        # First try to match by ISIN if available
+                        if 'isin' in stock and stock['isin']:
+                            try:
+                                # Scan for holdings with matching ISIN
+                                scan_response = holdings_table.scan(
+                                    FilterExpression='user_id = :user_id AND contains(#data, :isin)',
+                                    ExpressionAttributeNames={'#data': 'data'},
+                                    ExpressionAttributeValues={
+                                        ':user_id': user_id,
+                                        ':isin': stock['isin']
+                                    }
+                                )
+                                existing_holdings = scan_response.get('Items', [])
+                                
+                                # Filter for exact ISIN match in data.isin field
+                                existing_holdings = [h for h in existing_holdings 
+                                                   if h.get('data', {}).get('isin') == stock['isin']]
+                            except Exception as e:
+                                print(f"ISIN scan failed: {e}")
+                        
+                        # If no ISIN match found, try symbol match
+                        if not existing_holdings:
+                            try:
+                                existing_response = holdings_table.query(
+                                    IndexName='user_id-symbol-index',
+                                    KeyConditionExpression='user_id = :user_id AND symbol = :symbol',
+                                    ExpressionAttributeValues={
+                                        ':user_id': user_id,
+                                        ':symbol': stock['symbol']
+                                    }
+                                )
+                                existing_holdings = existing_response.get('Items', [])
+                            except Exception as e:
+                                print(f"Symbol query failed: {e}")
                         
                         if existing_holdings:
                             # Update existing holding
@@ -760,18 +786,32 @@ def handler(event, context):
                             now = datetime.utcnow().isoformat()
                             
                             # Update both the nested data and top-level fields
+                            # Also update ISIN and sector if available and missing
+                            update_expression = "SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at"
+                            expression_values = {
+                                ':units': Decimal(str(new_units)),
+                                ':invested': Decimal(str(new_invested)),
+                                ':current': Decimal(str(new_current)),
+                                ':updated_at': now
+                            }
+                            
+                            # Add ISIN if available and missing
+                            if 'isin' in stock and stock['isin'] and not existing_data.get('isin'):
+                                update_expression += ", #data.isin = :isin"
+                                expression_values[':isin'] = stock['isin']
+                            
+                            # Add sector if available and missing
+                            if 'sector' in stock and stock['sector'] and not existing_data.get('sector'):
+                                update_expression += ", #data.sector = :sector"
+                                expression_values[':sector'] = stock['sector']
+                            
                             holdings_table.update_item(
                                 Key={'id': existing['id']},
-                                UpdateExpression="SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at",
+                                UpdateExpression=update_expression,
                                 ExpressionAttributeNames={
                                     '#data': 'data'
                                 },
-                                ExpressionAttributeValues={
-                                    ':units': Decimal(str(new_units)),
-                                    ':invested': Decimal(str(new_invested)),
-                                    ':current': Decimal(str(new_current)),
-                                    ':updated_at': now
-                                }
+                                ExpressionAttributeValues=expression_values
                             )
                             updated_count += 1
                         else:
@@ -786,6 +826,8 @@ def handler(event, context):
                                 'instrumentClass': 'Stocks',
                                 'name': stock['name'],
                                 'symbol': stock['symbol'],
+                                'isin': stock.get('isin', ''),  # Add ISIN if available
+                                'sector': stock.get('sector', ''),  # Add sector if available
                                 'units': Decimal(str(stock['units'])),
                                 'price': Decimal(str(stock['price'])),
                                 'investedAmount': Decimal(str(stock['investedAmount'])),
