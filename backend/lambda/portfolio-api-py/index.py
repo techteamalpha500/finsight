@@ -66,6 +66,109 @@ def _get_company_name_by_isin(isin):
         print(f"Error looking up company name for ISIN {isin}: {e}")
         return None
 
+def _is_symbol_company_match(symbol, company_name):
+    """Check if a symbol matches a company name (e.g., TATAMOTORS -> Tata Motors Limited)"""
+    try:
+        symbol = symbol.lower().strip()
+        company_name = company_name.lower().strip()
+        
+        # Remove common suffixes and prefixes
+        symbol_clean = symbol.replace('ltd', '').replace('limited', '').replace('inc', '').replace('corp', '').strip()
+        company_clean = company_name.replace('ltd', '').replace('limited', '').replace('inc', '').replace('corp', '').strip()
+        
+        # Split into words
+        symbol_words = set(symbol_clean.split())
+        company_words = set(company_clean.split())
+        
+        # Check if there's significant word overlap
+        common_words = symbol_words.intersection(company_words)
+        
+        # If symbol has 2+ words and shares 1+ words with company, it's likely a match
+        if len(symbol_words) >= 2 and len(common_words) >= 1:
+            return True
+        
+        # Check for partial matches (e.g., TATAMOTORS contains "tata" and "motor")
+        if len(symbol_words) == 1:  # Single word symbol like TATAMOTORS
+            symbol_word = list(symbol_words)[0]
+            for company_word in company_words:
+                if len(company_word) >= 4 and company_word in symbol_word:
+                    return True
+                if len(symbol_word) >= 4 and symbol_word in company_word:
+                    return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Error in symbol-company matching: {e}")
+        return False
+
+def _find_existing_holding(user_id, stock):
+    """Find existing holding using multiple matching strategies"""
+    try:
+        # Strategy 1: Match by ISIN if available
+        if 'isin' in stock and stock['isin']:
+            # First try exact ISIN match
+            scan_response = holdings_table.scan(
+                FilterExpression='user_id = :user_id AND contains(#data, :isin)',
+                ExpressionAttributeNames={'#data': 'data'},
+                ExpressionAttributeValues={
+                    ':user_id': user_id,
+                    ':isin': stock['isin']
+                }
+            )
+            
+            items = scan_response.get('Items', [])
+            # Filter for exact ISIN match in data.isin field
+            isin_matches = [h for h in items if h.get('data', {}).get('isin') == stock['isin']]
+            if isin_matches:
+                return isin_matches[0]
+        
+        # Strategy 2: Match by symbol (exact match)
+        try:
+            symbol_response = holdings_table.query(
+                IndexName='user_id-symbol-index',
+                KeyConditionExpression='user_id = :user_id AND symbol = :symbol',
+                ExpressionAttributeValues={
+                    ':user_id': user_id,
+                    ':symbol': stock['symbol']
+                }
+            )
+            symbol_matches = symbol_response.get('Items', [])
+            if symbol_matches:
+                return symbol_matches[0]
+        except Exception as e:
+            print(f"Symbol query failed: {e}")
+        
+        # Strategy 3: Match by name similarity (for cases like "Tata Motors Limited" vs "TATAMOTORS")
+        if 'isin' in stock and stock['isin']:
+            # Get company name from stock companies table
+            company_name = _get_company_name_by_isin(stock['isin'])
+            if company_name:
+                # Scan all holdings and check for name similarity
+                all_holdings_response = holdings_table.scan(
+                    FilterExpression='user_id = :user_id',
+                    ExpressionAttributeValues={':user_id': user_id}
+                )
+                
+                all_holdings = all_holdings_response.get('Items', [])
+                for holding in all_holdings:
+                    holding_name = holding.get('data', {}).get('name', '').lower()
+                    holding_symbol = holding.get('data', {}).get('symbol', '').lower()
+                    
+                    # Check if company name matches holding name
+                    if holding_name and (company_name.lower() in holding_name or holding_name in company_name.lower()):
+                        return holding
+                    
+                    # Check if company name matches holding symbol (for cases like TATAMOTORS)
+                    if holding_symbol and _is_symbol_company_match(holding_symbol, company_name):
+                        return holding
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error finding existing holding: {e}")
+        return None
+
 def _convert_floats_to_decimals(obj):
     """Convert float values to Decimal types for DynamoDB compatibility"""
     if isinstance(obj, dict):
@@ -752,47 +855,12 @@ def handler(event, context):
                                 errors.append(f"Stock {stock.get('name', 'Unknown')}: Missing field {field}")
                                 continue
                         
-                        # Check if stock already exists by ISIN (if available) or symbol
-                        existing_holdings = []
+                        # Find existing holding using comprehensive matching
+                        existing_holding = _find_existing_holding(user_id, stock)
                         
-                        # First try to match by ISIN if available
-                        if 'isin' in stock and stock['isin']:
-                            try:
-                                # Scan for holdings with matching ISIN
-                                scan_response = holdings_table.scan(
-                                    FilterExpression='user_id = :user_id AND contains(#data, :isin)',
-                                    ExpressionAttributeNames={'#data': 'data'},
-                                    ExpressionAttributeValues={
-                                        ':user_id': user_id,
-                                        ':isin': stock['isin']
-                                    }
-                                )
-                                existing_holdings = scan_response.get('Items', [])
-                                
-                                # Filter for exact ISIN match in data.isin field
-                                existing_holdings = [h for h in existing_holdings 
-                                                   if h.get('data', {}).get('isin') == stock['isin']]
-                            except Exception as e:
-                                print(f"ISIN scan failed: {e}")
-                        
-                        # If no ISIN match found, try symbol match
-                        if not existing_holdings:
-                            try:
-                                existing_response = holdings_table.query(
-                                    IndexName='user_id-symbol-index',
-                                    KeyConditionExpression='user_id = :user_id AND symbol = :symbol',
-                                    ExpressionAttributeValues={
-                                        ':user_id': user_id,
-                                        ':symbol': stock['symbol']
-                                    }
-                                )
-                                existing_holdings = existing_response.get('Items', [])
-                            except Exception as e:
-                                print(f"Symbol query failed: {e}")
-                        
-                        if existing_holdings:
+                        if existing_holding:
                             # Update existing holding
-                            existing = existing_holdings[0]
+                            existing = existing_holding
                             existing_data = existing.get('data', {})
                             
                             # Extract current values from nested data structure
