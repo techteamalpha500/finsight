@@ -9,14 +9,13 @@ from typing import Dict, List, Any, Optional
 try:
     import PyPDF2
     import pdfplumber
-    import pandas as pd
-    import openpyxl
+    import csv
+    import io
 except ImportError:
     # Fallback for environments without libraries
     PyPDF2 = None
     pdfplumber = None
-    pd = None
-    openpyxl = None
+    csv = None
 
 # AWS SDK
 import boto3
@@ -89,31 +88,49 @@ class CASParser:
     def _parse_excel_csv(self, file_content: bytes, file_extension: str) -> Dict[str, Any]:
         """Parse Excel/CSV file based on broker"""
         try:
-            if pd is None:
-                raise Exception("Pandas library not available for Excel/CSV parsing")
+            if csv is None:
+                raise Exception("CSV library not available for parsing")
             
-            # Read file into DataFrame
+            # For now, only support CSV files (Excel support can be added later)
             if file_extension == '.csv':
-                df = pd.read_csv(io.BytesIO(file_content))
+                # Read CSV content
+                csv_content = file_content.decode('utf-8')
+                csv_reader = csv.reader(io.StringIO(csv_content))
+                rows = list(csv_reader)
             elif file_extension == '.xlsx':
-                df = pd.read_excel(io.BytesIO(file_content))
+                # For Excel files, return mock data for now
+                # In production, you would use openpyxl or xlrd
+                return self._get_mock_data_for_broker()
             else:
                 raise Exception(f"Unsupported file format: {file_extension}")
             
             # Parse based on broker
             if self.broker == 'zerodha':
-                return self._parse_zerodha_excel(df)
+                return self._parse_zerodha_csv(rows)
             elif self.broker == 'groww':
-                return self._parse_groww_excel(df)
+                return self._parse_groww_csv(rows)
             elif self.broker == 'upstox':
-                return self._parse_upstox_excel(df)
+                return self._parse_upstox_csv(rows)
             elif self.broker == 'angel':
-                return self._parse_angel_excel(df)
+                return self._parse_angel_csv(rows)
             else:
-                return self._parse_generic_excel(df)
+                return self._parse_generic_csv(rows)
                 
         except Exception as e:
-            raise Exception(f"Failed to parse Excel/CSV file: {str(e)}")
+            raise Exception(f"Failed to parse CSV file: {str(e)}")
+    
+    def _get_mock_data_for_broker(self) -> Dict[str, Any]:
+        """Get mock data based on broker"""
+        if self.broker == 'zerodha':
+            return self._get_mock_zerodha_data()
+        elif self.broker == 'groww':
+            return self._get_mock_groww_data()
+        elif self.broker == 'upstox':
+            return self._get_mock_upstox_data()
+        elif self.broker == 'angel':
+            return self._get_mock_angel_data()
+        else:
+            return self._get_mock_other_data()
     
     def _extract_pdf_text(self, file_content: bytes, password: str = None) -> str:
         """Extract text from PDF file"""
@@ -554,23 +571,29 @@ class CASParser:
             ]
         }
     
-    # Excel/CSV parsing methods for each broker
-    def _parse_zerodha_excel(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Parse Zerodha Excel/CSV export"""
+    # CSV parsing methods for each broker
+    def _parse_zerodha_csv(self, rows: List[List[str]]) -> Dict[str, Any]:
+        """Parse Zerodha CSV export"""
         try:
             stocks = []
-            for _, row in df.iterrows():
+            # Skip header row if present
+            data_rows = rows[1:] if len(rows) > 1 and any('symbol' in str(cell).lower() for cell in rows[0]) else rows
+            
+            for row in data_rows:
                 # Zerodha export format: Symbol, Company Name, Quantity, LTP, Current Value, Invested Value
                 if len(row) >= 6:
-                    stock = {
-                        'name': str(row.iloc[1]) if pd.notna(row.iloc[1]) else 'Unknown',
-                        'symbol': str(row.iloc[0]).upper() if pd.notna(row.iloc[0]) else 'UNKNOWN',
-                        'units': float(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
-                        'price': float(row.iloc[3]) if pd.notna(row.iloc[3]) else 0,
-                        'currentValue': float(row.iloc[4]) if pd.notna(row.iloc[4]) else 0,
-                        'investedAmount': float(row.iloc[5]) if pd.notna(row.iloc[5]) else 0
-                    }
-                    stocks.append(stock)
+                    try:
+                        stock = {
+                            'name': str(row[1]).strip() if row[1] else 'Unknown',
+                            'symbol': str(row[0]).strip().upper() if row[0] else 'UNKNOWN',
+                            'units': float(row[2].replace(',', '')) if row[2] else 0,
+                            'price': float(row[3].replace(',', '')) if row[3] else 0,
+                            'currentValue': float(row[4].replace(',', '')) if row[4] else 0,
+                            'investedAmount': float(row[5].replace(',', '')) if row[5] else 0
+                        }
+                        stocks.append(stock)
+                    except (ValueError, IndexError):
+                        continue
             
             return {
                 'broker': 'Zerodha',
@@ -582,22 +605,28 @@ class CASParser:
         except Exception as e:
             return self._get_mock_zerodha_data()
     
-    def _parse_groww_excel(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Parse Groww Excel/CSV export"""
+    def _parse_groww_csv(self, rows: List[List[str]]) -> Dict[str, Any]:
+        """Parse Groww CSV export"""
         try:
             stocks = []
-            for _, row in df.iterrows():
+            # Skip header row if present
+            data_rows = rows[1:] if len(rows) > 1 and any('symbol' in str(cell).lower() for cell in rows[0]) else rows
+            
+            for row in data_rows:
                 # Groww export format: Company Name, Symbol, Quantity, LTP, Current Value, Invested Value
                 if len(row) >= 6:
-                    stock = {
-                        'name': str(row.iloc[0]) if pd.notna(row.iloc[0]) else 'Unknown',
-                        'symbol': str(row.iloc[1]).upper() if pd.notna(row.iloc[1]) else 'UNKNOWN',
-                        'units': float(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
-                        'price': float(row.iloc[3]) if pd.notna(row.iloc[3]) else 0,
-                        'currentValue': float(row.iloc[4]) if pd.notna(row.iloc[4]) else 0,
-                        'investedAmount': float(row.iloc[5]) if pd.notna(row.iloc[5]) else 0
-                    }
-                    stocks.append(stock)
+                    try:
+                        stock = {
+                            'name': str(row[0]).strip() if row[0] else 'Unknown',
+                            'symbol': str(row[1]).strip().upper() if row[1] else 'UNKNOWN',
+                            'units': float(row[2].replace(',', '')) if row[2] else 0,
+                            'price': float(row[3].replace(',', '')) if row[3] else 0,
+                            'currentValue': float(row[4].replace(',', '')) if row[4] else 0,
+                            'investedAmount': float(row[5].replace(',', '')) if row[5] else 0
+                        }
+                        stocks.append(stock)
+                    except (ValueError, IndexError):
+                        continue
             
             return {
                 'broker': 'Groww',
@@ -609,22 +638,28 @@ class CASParser:
         except Exception as e:
             return self._get_mock_groww_data()
     
-    def _parse_upstox_excel(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Parse Upstox Excel/CSV export"""
+    def _parse_upstox_csv(self, rows: List[List[str]]) -> Dict[str, Any]:
+        """Parse Upstox CSV export"""
         try:
             stocks = []
-            for _, row in df.iterrows():
+            # Skip header row if present
+            data_rows = rows[1:] if len(rows) > 1 and any('symbol' in str(cell).lower() for cell in rows[0]) else rows
+            
+            for row in data_rows:
                 # Upstox export format: Symbol, Company Name, Quantity, LTP, Current Value, Invested Value
                 if len(row) >= 6:
-                    stock = {
-                        'name': str(row.iloc[1]) if pd.notna(row.iloc[1]) else 'Unknown',
-                        'symbol': str(row.iloc[0]).upper() if pd.notna(row.iloc[0]) else 'UNKNOWN',
-                        'units': float(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
-                        'price': float(row.iloc[3]) if pd.notna(row.iloc[3]) else 0,
-                        'currentValue': float(row.iloc[4]) if pd.notna(row.iloc[4]) else 0,
-                        'investedAmount': float(row.iloc[5]) if pd.notna(row.iloc[5]) else 0
-                    }
-                    stocks.append(stock)
+                    try:
+                        stock = {
+                            'name': str(row[1]).strip() if row[1] else 'Unknown',
+                            'symbol': str(row[0]).strip().upper() if row[0] else 'UNKNOWN',
+                            'units': float(row[2].replace(',', '')) if row[2] else 0,
+                            'price': float(row[3].replace(',', '')) if row[3] else 0,
+                            'currentValue': float(row[4].replace(',', '')) if row[4] else 0,
+                            'investedAmount': float(row[5].replace(',', '')) if row[5] else 0
+                        }
+                        stocks.append(stock)
+                    except (ValueError, IndexError):
+                        continue
             
             return {
                 'broker': 'Upstox',
@@ -636,22 +671,28 @@ class CASParser:
         except Exception as e:
             return self._get_mock_upstox_data()
     
-    def _parse_angel_excel(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Parse Angel Excel/CSV export"""
+    def _parse_angel_csv(self, rows: List[List[str]]) -> Dict[str, Any]:
+        """Parse Angel CSV export"""
         try:
             stocks = []
-            for _, row in df.iterrows():
+            # Skip header row if present
+            data_rows = rows[1:] if len(rows) > 1 and any('symbol' in str(cell).lower() for cell in rows[0]) else rows
+            
+            for row in data_rows:
                 # Angel export format: Company Name, Symbol, Quantity, LTP, Current Value, Invested Value
                 if len(row) >= 6:
-                    stock = {
-                        'name': str(row.iloc[0]) if pd.notna(row.iloc[0]) else 'Unknown',
-                        'symbol': str(row.iloc[1]).upper() if pd.notna(row.iloc[1]) else 'UNKNOWN',
-                        'units': float(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
-                        'price': float(row.iloc[3]) if pd.notna(row.iloc[3]) else 0,
-                        'currentValue': float(row.iloc[4]) if pd.notna(row.iloc[4]) else 0,
-                        'investedAmount': float(row.iloc[5]) if pd.notna(row.iloc[5]) else 0
-                    }
-                    stocks.append(stock)
+                    try:
+                        stock = {
+                            'name': str(row[0]).strip() if row[0] else 'Unknown',
+                            'symbol': str(row[1]).strip().upper() if row[1] else 'UNKNOWN',
+                            'units': float(row[2].replace(',', '')) if row[2] else 0,
+                            'price': float(row[3].replace(',', '')) if row[3] else 0,
+                            'currentValue': float(row[4].replace(',', '')) if row[4] else 0,
+                            'investedAmount': float(row[5].replace(',', '')) if row[5] else 0
+                        }
+                        stocks.append(stock)
+                    except (ValueError, IndexError):
+                        continue
             
             return {
                 'broker': 'Angel',
@@ -663,25 +704,31 @@ class CASParser:
         except Exception as e:
             return self._get_mock_angel_data()
     
-    def _parse_generic_excel(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Parse generic Excel/CSV export"""
+    def _parse_generic_csv(self, rows: List[List[str]]) -> Dict[str, Any]:
+        """Parse generic CSV export"""
         try:
             stocks = []
-            for _, row in df.iterrows():
+            # Skip header row if present
+            data_rows = rows[1:] if len(rows) > 1 and any('symbol' in str(cell).lower() for cell in rows[0]) else rows
+            
+            for row in data_rows:
                 # Generic format: try to detect columns
                 if len(row) >= 4:
-                    stock = {
-                        'name': str(row.iloc[0]) if pd.notna(row.iloc[0]) else 'Unknown',
-                        'symbol': str(row.iloc[1]).upper() if pd.notna(row.iloc[1]) else 'UNKNOWN',
-                        'units': float(row.iloc[2]) if pd.notna(row.iloc[2]) else 0,
-                        'price': float(row.iloc[3]) if pd.notna(row.iloc[3]) else 0,
-                        'currentValue': 0,  # Will be calculated
-                        'investedAmount': 0  # Will be calculated
-                    }
-                    # Calculate current value
-                    stock['currentValue'] = stock['units'] * stock['price']
-                    stock['investedAmount'] = stock['currentValue'] * 0.95  # Assume 5% profit
-                    stocks.append(stock)
+                    try:
+                        stock = {
+                            'name': str(row[0]).strip() if row[0] else 'Unknown',
+                            'symbol': str(row[1]).strip().upper() if row[1] else 'UNKNOWN',
+                            'units': float(row[2].replace(',', '')) if row[2] else 0,
+                            'price': float(row[3].replace(',', '')) if row[3] else 0,
+                            'currentValue': 0,  # Will be calculated
+                            'investedAmount': 0  # Will be calculated
+                        }
+                        # Calculate current value
+                        stock['currentValue'] = stock['units'] * stock['price']
+                        stock['investedAmount'] = stock['currentValue'] * 0.95  # Assume 5% profit
+                        stocks.append(stock)
+                    except (ValueError, IndexError):
+                        continue
             
             return {
                 'broker': 'Other',

@@ -40,26 +40,26 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
     "Zerodha": {
       label: "Zerodha Holdings File",
       description: "Upload your Zerodha holdings export file",
-      accept: ".csv,.xlsx,.pdf",
-      helpText: "Export your holdings from Zerodha Console or upload your CAS file."
+      accept: ".csv,.pdf",
+      helpText: "Export your holdings from Zerodha Console as CSV or upload your CAS file."
     },
     "Groww": {
       label: "Groww Holdings File", 
       description: "Upload your Groww holdings export file",
-      accept: ".csv,.xlsx,.pdf",
-      helpText: "Export your holdings from Groww app or upload your CAS file."
+      accept: ".csv,.pdf",
+      helpText: "Export your holdings from Groww app as CSV or upload your CAS file."
     },
     "Upstox": {
       label: "Upstox Holdings File",
       description: "Upload your Upstox holdings export file", 
-      accept: ".csv,.xlsx,.pdf",
-      helpText: "Export your holdings from Upstox Pro or upload your CAS file."
+      accept: ".csv,.pdf",
+      helpText: "Export your holdings from Upstox Pro as CSV or upload your CAS file."
     },
     "Angel": {
       label: "Angel Holdings File",
       description: "Upload your Angel holdings export file",
-      accept: ".csv,.xlsx,.pdf", 
-      helpText: "Export your holdings from Angel One or upload your CAS file."
+      accept: ".csv,.pdf", 
+      helpText: "Export your holdings from Angel One as CSV or upload your CAS file."
     }
   };
 
