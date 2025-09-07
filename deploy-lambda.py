@@ -61,7 +61,11 @@ def build_lambda_packages():
             "src": "backend/lambda/expenses-api-py",
             "zip": "terraform/expenses_api.zip"
         },
-
+        {
+            "name": "import-stocks",
+            "src": "backend/lambda/import-stocks",
+            "zip": "terraform/import_stocks.zip"
+        }
     ]
     
     for func in lambda_functions:
@@ -233,6 +237,15 @@ def show_deployment_outputs():
     except subprocess.CalledProcessError:
         print("   💰 Expenses API: (not deployed)")
     
+    # Import Stocks Lambda
+    try:
+        import_name = run_command(["terraform", "output", "-raw", "import_stocks_lambda_name"], capture_output=True)
+        import_arn = run_command(["terraform", "output", "-raw", "import_stocks_lambda_arn"], capture_output=True)
+        print(f"   📊 Import Stocks: {import_name}")
+        print(f"      ARN: {import_arn}")
+    except subprocess.CalledProcessError:
+        print("   📊 Import Stocks: (not deployed)")
+    
     print("\n📊 DynamoDB Tables:")
     try:
         stock_table = run_command(["terraform", "output", "-raw", "stock_companies_table_name"], capture_output=True)
@@ -289,6 +302,7 @@ def main():
     print("  📊 Parse MF/Stocks Lambda (parse-mf-stocks)")
     print("  💼 Portfolio API Lambda (portfolio-api)")
     print("  💰 Expenses API Lambda (expenses-api)")
+    print("  📊 Import Stocks Lambda (import-stocks)")
     print("  📊 All DynamoDB Tables")
     print("  🌐 API Gateway Routes")
     print("=" * 60)

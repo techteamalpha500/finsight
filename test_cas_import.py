@@ -100,8 +100,84 @@ TEST_CAS_DATA = {
     }
 }
 
+def test_cas_parsing(broker_name, mock_file_content):
+    """Test CAS parsing for a specific broker"""
+    print(f"\n🧪 Testing CAS parsing for {broker_name}...")
+    
+    try:
+        # Step 1: Test CAS parsing
+        parse_response = requests.post(
+            f"{API_BASE_URL}/parse-cas",
+            headers={
+                "Content-Type": "application/json"
+            },
+            json={
+                "broker": broker_name,
+                "file_content": mock_file_content,
+                "password": "test123"
+            },
+            timeout=30
+        )
+        
+        print(f"   📡 Parse API Response Status: {parse_response.status_code}")
+        
+        if parse_response.status_code == 200:
+            parse_result = parse_response.json()
+            print(f"   ✅ Parsing Success!")
+            print(f"      📊 Parsed {parse_result.get('total_stocks', 0)} stocks")
+            
+            # Step 2: Test import to holdings
+            cas_data = parse_result.get('data', {})
+            import_response = requests.post(
+                f"{API_BASE_URL}/holdings/import",
+                headers={
+                    "Content-Type": "application/json"
+                },
+                json=cas_data,
+                timeout=30
+            )
+            
+            print(f"   📡 Import API Response Status: {import_response.status_code}")
+            
+            if import_response.status_code == 200:
+                import_result = import_response.json()
+                print(f"   ✅ Import Success!")
+                print(f"      📊 Imported: {import_result.get('imported', 0)} stocks")
+                print(f"      🔄 Updated: {import_result.get('updated', 0)} stocks")
+                print(f"      📈 Total processed: {import_result.get('total_processed', 0)} stocks")
+                
+                if import_result.get('errors'):
+                    print(f"      ⚠️  Errors: {len(import_result['errors'])}")
+                    for error in import_result['errors']:
+                        print(f"         - {error}")
+                
+                return True
+            else:
+                print(f"   ❌ Import failed with status {import_response.status_code}")
+                try:
+                    error_data = import_response.json()
+                    print(f"      Error: {error_data.get('error', 'Unknown error')}")
+                except:
+                    print(f"      Error: {import_response.text}")
+                return False
+        else:
+            print(f"   ❌ Parsing failed with status {parse_response.status_code}")
+            try:
+                error_data = parse_response.json()
+                print(f"      Error: {error_data.get('error', 'Unknown error')}")
+            except:
+                print(f"      Error: {parse_response.text}")
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        print(f"   ❌ Request failed: {str(e)}")
+        return False
+    except Exception as e:
+        print(f"   ❌ Unexpected error: {str(e)}")
+        return False
+
 def test_cas_import(broker_name, cas_data):
-    """Test CAS import for a specific broker"""
+    """Test CAS import for a specific broker (legacy function)"""
     print(f"\n🧪 Testing CAS import for {broker_name}...")
     
     try:
@@ -204,9 +280,12 @@ def main():
     
     results = {}
     
-    # Test each broker
+    # Create mock file content (base64 encoded PDF content)
+    mock_file_content = "JVBERi0xLjQKJcOkw7zDtsO8CjIgMCBvYmoKPDwKL0xlbmd0aCAzIDAgUgo+PgpzdHJlYW0KQlQKL0YxIDEyIFRmCjcyIDcyMCBUZAooVGVzdCBDQVMgRmlsZSkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoKMyAwIG9iago0NQplbmRvYmoKCjEgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCA0IDAgUgovUmVzb3VyY2VzIDw8Ci9Gb250IDw8Ci9GMSAyIDAgUgo+Pgo+PgovTWVkaWFCb3ggWzAgMCA2MTIgNzkyXQovQ29udGVudHMgMiAwIFIKPj4KZW5kb2JqCgo0IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbMSAwIFJdCj4+CmVuZG9iagoKNSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgNCAwIFIKPj4KZW5kb2JqCgp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYKMDAwMDAwMDAwOSAwMDAwMCBuCjAwMDAwMDAwNTggMDAwMDAgbgowMDAwMDAwMTE1IDAwMDAwIG4KMDAwMDAwMDI2MyAwMDAwMCBuCjAwMDAwMDAzMjIgMDAwMDAgbgp0cmFpbGVyCjw8Ci9TaXplIDYKL1Jvb3QgNSAwIFIKPj4Kc3RhcnR4cmVmCjQxNQolJUVPRgo="
+    
+    # Test each broker with new parsing approach
     for broker_name, cas_data in TEST_CAS_DATA.items():
-        success = test_cas_import(broker_name, cas_data)
+        success = test_cas_parsing(broker_name, mock_file_content)
         results[broker_name] = success
         
         # Small delay between tests

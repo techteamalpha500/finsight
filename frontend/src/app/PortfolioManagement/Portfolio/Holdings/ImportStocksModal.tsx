@@ -3,8 +3,8 @@ import React, { useState, useRef } from "react";
 import { X, Upload, FileText, Lock, ExternalLink, AlertCircle } from "lucide-react";
 import { Button } from "../../../components/Button";
 import { Card as PlanCard, CardContent as PlanCardContent, CardHeader as PlanCardHeader, CardTitle as PlanCardTitle } from "../../../components/Card";
-import { parseCASFile, validateCASFile, extractBrokerFromFilename, formatCASDataForDisplay, type CASData } from "./casParser";
-import { importCASData } from "../../../../lib/dynamodb";
+import { validateCASFile, extractBrokerFromFilename, formatCASDataForDisplay, type CASData } from "./casParser";
+import { parseCASFile, importCASData } from "../../../../lib/dynamodb";
 
 interface ImportStocksModalProps {
   isOpen: boolean;
@@ -88,10 +88,10 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
     setError("");
 
     try {
-      // First parse the CAS file to extract stock data
+      // Step 1: Parse the CAS file using the import-stocks lambda
       const casData = await parseCASFile(selectedFile, password, broker);
       
-      // Then send the data to the API
+      // Step 2: Import the parsed data to holdings using portfolio lambda
       const result = await importCASData(casData);
       
       // Call the onImport callback with the result

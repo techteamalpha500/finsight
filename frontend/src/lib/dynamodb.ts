@@ -640,7 +640,40 @@ export async function searchStockCompanies(query: string, exchange?: string): Pr
 // API Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://your-api-gateway-url';
 
-// CAS Import API function
+// CAS Import API function - Parse CAS file
+export async function parseCASFile(file: File, password: string, broker: string): Promise<any> {
+  try {
+    // Convert file to base64
+    const fileContent = await fileToBase64(file);
+    
+    const response = await fetch(`${API_BASE_URL}/parse-cas`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        broker,
+        file_content: fileContent,
+        password
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.data; // Return the parsed CAS data
+  } catch (error) {
+    console.error('CAS parsing API error:', error);
+    throw error;
+  }
+}
+
+// CAS Import API function - Import parsed data to holdings
 export async function importCASData(casData: any): Promise<any> {
   try {
     const response = await fetch(`${API_BASE_URL}/holdings/import`, {
@@ -664,4 +697,19 @@ export async function importCASData(casData: any): Promise<any> {
     console.error('CAS import API error:', error);
     throw error;
   }
+}
+
+// Helper function to convert file to base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      // Remove data URL prefix (data:application/pdf;base64,)
+      const base64Content = base64.split(',')[1];
+      resolve(base64Content);
+    };
+    reader.onerror = error => reject(error);
+  });
 }
