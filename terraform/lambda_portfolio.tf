@@ -4,10 +4,9 @@ variable "portfolio_lambda_name" {
   description = "Portfolio Lambda function name"
 }
 
-data "archive_file" "portfolio_lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.root}/../backend/lambda/portfolio-api-py"
-  output_path = "${path.module}/build/portfolio-api.zip"
+# Use pre-built ZIP file with dependencies
+locals {
+  portfolio_zip_path = "${path.module}/portfolio_api.zip"
 }
 
 resource "aws_iam_role" "portfolio_lambda_exec" {
@@ -61,8 +60,8 @@ resource "aws_lambda_function" "portfolio" {
   role          = aws_iam_role.portfolio_lambda_exec.arn
   handler       = "index.handler"
   runtime       = "python3.12"
-  filename      = data.archive_file.portfolio_lambda_zip.output_path
-  source_code_hash = data.archive_file.portfolio_lambda_zip.output_base64sha256
+  filename      = local.portfolio_zip_path
+  source_code_hash = filebase64sha256(local.portfolio_zip_path)
 
   timeout = 60
   

@@ -23,10 +23,9 @@ variable "cognito_audience" {
   default     = []
 }
 
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.root}/../backend/lambda/expenses-api-py"
-  output_path = "${path.module}/build/expenses-api.zip"
+# Use pre-built ZIP file with dependencies
+locals {
+  expenses_zip_path = "${path.module}/expenses_api.zip"
 }
 
 resource "aws_iam_role" "lambda_exec" {
@@ -87,8 +86,8 @@ resource "aws_lambda_function" "expenses" {
   role          = aws_iam_role.lambda_exec.arn
   handler       = "index.handler"
   runtime       = "python3.12"
-  filename      = data.archive_file.lambda_zip.output_path
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  filename      = local.expenses_zip_path
+  source_code_hash = filebase64sha256(local.expenses_zip_path)
 
   timeout = 60
   

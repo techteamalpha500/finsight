@@ -83,17 +83,22 @@ def build_lambda_packages():
         lambda_src = Path(func["src"])
         build_dir = Path(f"terraform/lambda_build_{func['name'].replace('-', '_')}")
         zip_file = Path(func["zip"])
+        terraform_zip = Path(f"terraform/{func['name'].replace('-', '_')}.zip")
         
         # Skip if source doesn't exist
         if not lambda_src.exists():
             print(f"   ⚠️  Source directory {lambda_src} not found, skipping...")
             continue
         
-        # Clean up previous builds
+        # ALWAYS clean up previous builds to force rebuild
+        print(f"   🧹 Cleaning up previous builds...")
         if build_dir.exists():
             shutil.rmtree(build_dir)
         if zip_file.exists():
             zip_file.unlink()
+        if terraform_zip.exists():
+            terraform_zip.unlink()
+            print(f"   ✅ Removed existing {terraform_zip}")
         
         # Create build directory
         build_dir.mkdir(parents=True, exist_ok=True)
@@ -174,6 +179,12 @@ def build_lambda_packages():
         
         print(f"   ✅ Created {zip_file}")
         
+        # Copy to terraform directory for Terraform to use
+        terraform_zip = Path(f"terraform/{func['name'].replace('-', '_')}.zip")
+        shutil.copy2(zip_file, terraform_zip)
+        print(f"   ✅ Copied to {terraform_zip} for Terraform deployment")
+        print(f"   📊 Terraform ZIP size: {terraform_zip.stat().st_size / (1024*1024):.1f} MB")
+        
         # Comprehensive ZIP verification for all functions
         print(f"   📦 Verifying {func['name']} ZIP contents...")
         with zipfile.ZipFile(zip_file, 'r') as zipf:
@@ -252,6 +263,18 @@ def build_lambda_packages():
         
         # Clean up build directory
         shutil.rmtree(build_dir)
+    
+    # Show summary of created packages
+    print(f"\n📦 BUILD SUMMARY:")
+    print(f"=" * 50)
+    for func in lambda_functions:
+        terraform_zip = Path(f"terraform/{func['name'].replace('-', '_')}.zip")
+        if terraform_zip.exists():
+            size_mb = terraform_zip.stat().st_size / (1024*1024)
+            print(f"✅ {func['name']}: {terraform_zip.name} ({size_mb:.1f} MB)")
+        else:
+            print(f"❌ {func['name']}: Package not created")
+    print(f"=" * 50)
 
 def create_prebuilt_package():
     """Create a pre-built package for import-stocks Lambda"""

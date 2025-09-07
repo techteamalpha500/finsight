@@ -4,10 +4,9 @@ variable "import_stocks_lambda_name" {
   description = "Import Stocks Lambda function name"
 }
 
-data "archive_file" "import_stocks_lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.root}/../backend/lambda/import-stocks"
-  output_path = "${path.module}/build/import-stocks.zip"
+# Use pre-built ZIP file with dependencies
+locals {
+  import_stocks_zip_path = "${path.module}/import_stocks.zip"
 }
 
 resource "aws_iam_role" "import_stocks_lambda_exec" {
@@ -50,8 +49,8 @@ resource "aws_lambda_function" "import_stocks" {
   role          = aws_iam_role.import_stocks_lambda_exec.arn
   handler       = "index.handler"
   runtime       = "python3.12"
-  filename      = data.archive_file.import_stocks_lambda_zip.output_path
-  source_code_hash = data.archive_file.import_stocks_lambda_zip.output_base64sha256
+  filename      = local.import_stocks_zip_path
+  source_code_hash = filebase64sha256(local.import_stocks_zip_path)
 
   timeout = 60
   
