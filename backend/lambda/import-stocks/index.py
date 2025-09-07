@@ -11,11 +11,13 @@ try:
     import pdfplumber
     import csv
     import io
+    from openpyxl import load_workbook
 except ImportError:
     # Fallback for environments without libraries
     PyPDF2 = None
     pdfplumber = None
     csv = None
+    load_workbook = None
 
 # AWS SDK
 import boto3
@@ -88,19 +90,31 @@ class CASParser:
     def _parse_excel_csv(self, file_content: bytes, file_extension: str) -> Dict[str, Any]:
         """Parse Excel/CSV file based on broker"""
         try:
-            if csv is None:
-                raise Exception("CSV library not available for parsing")
+            rows = []
             
-            # For now, only support CSV files (Excel support can be added later)
             if file_extension == '.csv':
+                if csv is None:
+                    raise Exception("CSV library not available for parsing")
+                
                 # Read CSV content
                 csv_content = file_content.decode('utf-8')
                 csv_reader = csv.reader(io.StringIO(csv_content))
                 rows = list(csv_reader)
+                
             elif file_extension == '.xlsx':
-                # For Excel files, return mock data for now
-                # In production, you would use openpyxl or xlrd
-                return self._get_mock_data_for_broker()
+                if load_workbook is None:
+                    raise Exception("openpyxl library not available for Excel parsing")
+                
+                # Read Excel content
+                workbook = load_workbook(io.BytesIO(file_content))
+                worksheet = workbook.active
+                
+                # Convert Excel rows to list format
+                for row in worksheet.iter_rows(values_only=True):
+                    # Convert None values to empty strings and ensure all values are strings
+                    row_data = [str(cell) if cell is not None else '' for cell in row]
+                    rows.append(row_data)
+                    
             else:
                 raise Exception(f"Unsupported file format: {file_extension}")
             
@@ -117,7 +131,7 @@ class CASParser:
                 return self._parse_generic_csv(rows)
                 
         except Exception as e:
-            raise Exception(f"Failed to parse CSV file: {str(e)}")
+            raise Exception(f"Failed to parse {file_extension} file: {str(e)}")
     
     def _get_mock_data_for_broker(self) -> Dict[str, Any]:
         """Get mock data based on broker"""
