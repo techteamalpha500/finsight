@@ -128,6 +128,7 @@ resource "aws_apigatewayv2_route" "portfolio_routes_protected" {
     "POST /holdings",
     "GET /holdings",
     "DELETE /holdings/{id}",
+    "POST /holdings/import",
     "POST /transactions",
     "GET /transactions",
     "GET /repayments",

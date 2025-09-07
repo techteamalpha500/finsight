@@ -4,6 +4,7 @@ import { X, Upload, FileText, Lock, ExternalLink, AlertCircle } from "lucide-rea
 import { Button } from "../../../components/Button";
 import { Card as PlanCard, CardContent as PlanCardContent, CardHeader as PlanCardHeader, CardTitle as PlanCardTitle } from "../../../components/Card";
 import { parseCASFile, validateCASFile, extractBrokerFromFilename, formatCASDataForDisplay, type CASData } from "./casParser";
+import { importCASData } from "../../../../lib/dynamodb";
 
 interface ImportStocksModalProps {
   isOpen: boolean;
@@ -23,15 +24,9 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
   const brokers = [
     "Other",
     "Zerodha",
-    "Angel One",
-    "ICICI Direct",
-    "HDFC Securities",
-    "Sharekhan",
-    "Motilal Oswal",
-    "5paisa",
+    "Groww", 
     "Upstox",
-    "Groww",
-    "Paytm Money"
+    "Angel"
   ];
 
   const isSubmitDisabled = !selectedFile || !password.trim();
@@ -93,15 +88,23 @@ export default function ImportStocksModal({ isOpen, onClose, onImport }: ImportS
     setError("");
 
     try {
+      // First parse the CAS file to extract stock data
       const casData = await parseCASFile(selectedFile, password, broker);
-      onImport(casData);
+      
+      // Then send the data to the API
+      const result = await importCASData(casData);
+      
+      // Call the onImport callback with the result
+      onImport(result);
       onClose();
+      
       // Reset form
       setSelectedFile(null);
       setPassword("");
       setBroker("Other");
     } catch (err) {
-      setError("Failed to process CAS file. Please check the file and password.");
+      console.error('Import error:', err);
+      setError(err instanceof Error ? err.message : "Failed to process CAS file. Please check the file and password.");
     } finally {
       setIsProcessing(false);
     }

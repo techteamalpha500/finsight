@@ -785,58 +785,25 @@ export default function HoldingsPage() {
 	}
 
 	// Handle import from CAS
-	async function handleImportStocks(casData: CASData) {
+	async function handleImportStocks(importResult: any) {
 		try {
 			setIsRefreshing(true);
 			
-			// Process each stock from CAS data
-			for (const stock of casData.stocks) {
-				// Check if stock already exists
-				const existingHolding = holdings.find(h => 
-					h.symbol === stock.symbol || h.name === stock.name
-				);
-				
-				if (existingHolding) {
-					// Update existing holding
-					const updatedHolding: HoldingData = {
-						...existingHolding,
-						units: (existingHolding.units || 0) + stock.units,
-						investedAmount: (existingHolding.investedAmount || 0) + stock.investedAmount,
-						currentValue: (existingHolding.currentValue || 0) + stock.currentValue,
-						updated_at: new Date().toISOString()
-					};
-					
-					await saveHolding(updatedHolding);
-				} else {
-					// Add new holding
-					const newHolding: HoldingData = {
-						id: uuidv4(),
-						user_id: 'user-123', // Mock user ID
-						instrumentClass: "Stocks",
-						name: stock.name,
-						symbol: stock.symbol,
-						units: stock.units,
-						price: stock.price,
-						investedAmount: stock.investedAmount,
-						currentValue: stock.currentValue,
-						asset_class: "Stocks",
-						portfolio_role: "Equity",
-						created_at: new Date().toISOString(),
-						updated_at: new Date().toISOString()
-					};
-					
-					await saveHolding(newHolding);
-				}
-			}
-			
-			// Refresh holdings data
+			// Refresh holdings data from the database
 			await loadHoldingsData();
 			setIsRefreshing(false);
 			
-			alert(`Successfully imported ${casData.stocks.length} stocks from ${casData.broker}!`);
+			// Show success message with import details
+			const message = `Successfully imported ${importResult.imported} new stocks and updated ${importResult.updated} existing stocks from ${importResult.broker || 'CAS file'}!`;
+			
+			if (importResult.errors && importResult.errors.length > 0) {
+				alert(`${message}\n\nNote: ${importResult.errors.length} stocks had errors during import.`);
+			} else {
+				alert(message);
+			}
 		} catch (error) {
 			setIsRefreshing(false);
-			alert('Failed to import stocks. Please try again.');
+			alert('Failed to refresh holdings after import. Please reload the page.');
 		}
 	}
 

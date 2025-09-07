@@ -698,6 +698,111 @@ def handler(event, context):
             except Exception as e:
                 return _response(500, {"error": f"Failed to fetch repayment history: {str(e)}"})
 
+        # CAS Import endpoint (POST /holdings/import)
+        if route_key == "POST /holdings/import":
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                body = json.loads(event.get('body', '{}'))
+                
+                # Validate required fields
+                required_fields = ['broker', 'stocks']
+                for field in required_fields:
+                    if field not in body:
+                        return _response(400, {"error": f"Missing required field: {field}"})
+                
+                broker = body['broker']
+                stocks_data = body['stocks']
+                
+                # Validate broker
+                valid_brokers = ['Zerodha', 'Groww', 'Upstox', 'Angel', 'Other']
+                if broker not in valid_brokers:
+                    return _response(400, {"error": f"Invalid broker. Must be one of: {valid_brokers}"})
+                
+                imported_count = 0
+                updated_count = 0
+                errors = []
+                
+                for stock in stocks_data:
+                    try:
+                        # Validate stock data
+                        required_stock_fields = ['name', 'symbol', 'units', 'price', 'currentValue', 'investedAmount']
+                        for field in required_stock_fields:
+                            if field not in stock:
+                                errors.append(f"Stock {stock.get('name', 'Unknown')}: Missing field {field}")
+                                continue
+                        
+                        # Check if stock already exists
+                        existing_response = holdings_table.query(
+                            IndexName='user_id-symbol-index',
+                            KeyConditionExpression='user_id = :user_id AND symbol = :symbol',
+                            ExpressionAttributeValues={
+                                ':user_id': user_id,
+                                ':symbol': stock['symbol']
+                            }
+                        )
+                        
+                        existing_holdings = existing_response.get('Items', [])
+                        
+                        if existing_holdings:
+                            # Update existing holding
+                            existing = existing_holdings[0]
+                            new_units = float(existing.get('units', 0)) + float(stock['units'])
+                            new_invested = float(existing.get('investedAmount', 0)) + float(stock['investedAmount'])
+                            new_current = float(existing.get('currentValue', 0)) + float(stock['currentValue'])
+                            
+                            holdings_table.update_item(
+                                Key={'user_id': user_id, 'id': existing['id']},
+                                UpdateExpression="SET units = :units, investedAmount = :invested, currentValue = :current, updated_at = :updated_at",
+                                ExpressionAttributeValues={
+                                    ':units': Decimal(str(new_units)),
+                                    ':invested': Decimal(str(new_invested)),
+                                    ':current': Decimal(str(new_current)),
+                                    ':updated_at': datetime.utcnow().isoformat()
+                                }
+                            )
+                            updated_count += 1
+                        else:
+                            # Add new holding
+                            holding_id = str(uuid.uuid4())
+                            new_holding = {
+                                'user_id': user_id,
+                                'id': holding_id,
+                                'instrumentClass': 'Stocks',
+                                'name': stock['name'],
+                                'symbol': stock['symbol'],
+                                'units': Decimal(str(stock['units'])),
+                                'price': Decimal(str(stock['price'])),
+                                'investedAmount': Decimal(str(stock['investedAmount'])),
+                                'currentValue': Decimal(str(stock['currentValue'])),
+                                'asset_class': 'Stocks',
+                                'portfolio_role': 'Equity',
+                                'created_at': datetime.utcnow().isoformat(),
+                                'updated_at': datetime.utcnow().isoformat()
+                            }
+                            
+                            holdings_table.put_item(Item=new_holding)
+                            imported_count += 1
+                            
+                    except Exception as stock_error:
+                        errors.append(f"Stock {stock.get('name', 'Unknown')}: {str(stock_error)}")
+                        continue
+                
+                response_data = {
+                    'message': f'CAS import completed for {broker}',
+                    'imported': imported_count,
+                    'updated': updated_count,
+                    'total_processed': len(stocks_data),
+                    'errors': errors
+                }
+                
+                if errors:
+                    response_data['warning'] = f'{len(errors)} stocks had errors during import'
+                
+                return _response(200, response_data)
+                
+            except Exception as e:
+                return _response(500, {"error": f"Failed to import CAS data: {str(e)}"})
+
         return _response(404, {"error": "Not found", "routeKey": route_key})
     except Exception as e:
         print("handler error", e)

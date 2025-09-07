@@ -140,15 +140,9 @@ export function extractBrokerFromFilename(filename: string): string {
   const lowerFilename = filename.toLowerCase();
   
   if (lowerFilename.includes('zerodha')) return 'Zerodha';
-  if (lowerFilename.includes('angel')) return 'Angel One';
-  if (lowerFilename.includes('icici')) return 'ICICI Direct';
-  if (lowerFilename.includes('hdfc')) return 'HDFC Securities';
-  if (lowerFilename.includes('sharekhan')) return 'Sharekhan';
-  if (lowerFilename.includes('motilal')) return 'Motilal Oswal';
-  if (lowerFilename.includes('5paisa')) return '5paisa';
-  if (lowerFilename.includes('upstox')) return 'Upstox';
   if (lowerFilename.includes('groww')) return 'Groww';
-  if (lowerFilename.includes('paytm')) return 'Paytm Money';
+  if (lowerFilename.includes('upstox')) return 'Upstox';
+  if (lowerFilename.includes('angel')) return 'Angel';
   
   return 'Other';
 }

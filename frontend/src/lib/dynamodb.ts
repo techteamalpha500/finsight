@@ -636,3 +636,32 @@ export async function searchStockCompanies(query: string, exchange?: string): Pr
   // Return limited results
   return filteredStocks.slice(0, 10);
 }
+
+// API Configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://your-api-gateway-url';
+
+// CAS Import API function
+export async function importCASData(casData: any): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/holdings/import`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(casData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('CAS import API error:', error);
+    throw error;
+  }
+}
