@@ -102,7 +102,7 @@ def _is_symbol_company_match(symbol, company_name):
         print(f"Error in symbol-company matching: {e}")
         return False
 
-def _find_existing_holding(user_id, stock):
+def _find_existing_holding(user_sub, portfolio_id, stock):
     """Find existing holding using multiple matching strategies"""
     try:
         print(f"🔍 _find_existing_holding called for: {stock.get('name', 'Unknown')} (ISIN: {stock.get('isin', 'None')})")
@@ -110,12 +110,12 @@ def _find_existing_holding(user_id, stock):
         # Strategy 1: Match by ISIN if available
         if 'isin' in stock and stock['isin']:
             print(f"🔍 Strategy 1: Trying ISIN match for {stock['isin']}")
-            # First try exact ISIN match
-            scan_response = holdings_table.scan(
-                FilterExpression='user_id = :user_id AND contains(#data, :isin)',
+            # Query InvestApp table for holdings with matching ISIN
+            scan_response = invest_table.scan(
+                FilterExpression='pk = :pk AND contains(#data, :isin)',
                 ExpressionAttributeNames={'#data': 'data'},
                 ExpressionAttributeValues={
-                    ':user_id': user_id,
+                    ':pk': f'USER#{user_sub}',
                     ':isin': stock['isin']
                 }
             )
@@ -132,16 +132,21 @@ def _find_existing_holding(user_id, stock):
         # Strategy 2: Match by symbol (exact match)
         print(f"🔍 Strategy 2: Trying symbol match for {stock.get('symbol', 'None')}")
         try:
-            symbol_response = holdings_table.query(
-                IndexName='user_id-symbol-index',
-                KeyConditionExpression='user_id = :user_id AND symbol = :symbol',
+            # Query InvestApp table for holdings with matching symbol
+            scan_response = invest_table.scan(
+                FilterExpression='pk = :pk AND contains(#data, :symbol)',
+                ExpressionAttributeNames={'#data': 'data'},
                 ExpressionAttributeValues={
-                    ':user_id': user_id,
+                    ':pk': f'USER#{user_sub}',
                     ':symbol': stock['symbol']
                 }
             )
-            symbol_matches = symbol_response.get('Items', [])
-            print(f"🔍 Symbol query returned {len(symbol_matches)} matches")
+            
+            items = scan_response.get('Items', [])
+            print(f"🔍 Symbol scan returned {len(items)} items")
+            # Filter for exact symbol match in data.symbol field
+            symbol_matches = [h for h in items if h.get('data', {}).get('symbol') == stock['symbol']]
+            print(f"🔍 Exact symbol matches: {len(symbol_matches)}")
             if symbol_matches:
                 print(f"✅ Symbol match found: {symbol_matches[0].get('data', {}).get('name', 'Unknown')}")
                 return symbol_matches[0]
@@ -156,9 +161,9 @@ def _find_existing_holding(user_id, stock):
             print(f"🔍 Company name from ISIN: {company_name}")
             if company_name:
                 # Scan all holdings and check for name similarity
-                all_holdings_response = holdings_table.scan(
-                    FilterExpression='user_id = :user_id',
-                    ExpressionAttributeValues={':user_id': user_id}
+                all_holdings_response = invest_table.scan(
+                    FilterExpression='pk = :pk',
+                    ExpressionAttributeValues={':pk': f'USER#{user_sub}'}
                 )
                 
                 all_holdings = all_holdings_response.get('Items', [])
@@ -841,7 +846,10 @@ def handler(event, context):
         # CAS Import endpoint (POST /holdings/import)
         if route_key == "POST /holdings/import":
             try:
-                user_id = "user-123"  # TODO: Get from auth context
+                # TODO: Get actual user ID from auth context
+                # For now, using a placeholder that matches the frontend structure
+                user_sub = "user-123"  # This should come from JWT token
+                portfolio_id = "default-portfolio"  # Default portfolio ID
                 body = json.loads(event.get('body', '{}'))
                 
                 # Validate required fields
@@ -873,7 +881,7 @@ def handler(event, context):
                         
                         # Find existing holding using comprehensive matching
                         print(f"🔍 Looking for existing holding for stock: {stock.get('name', 'Unknown')} (Symbol: {stock.get('symbol', 'Unknown')}, ISIN: {stock.get('isin', 'None')})")
-                        existing_holding = _find_existing_holding(user_id, stock)
+                        existing_holding = _find_existing_holding(user_sub, portfolio_id, stock)
                         
                         if existing_holding:
                             print(f"✅ Found existing holding: {existing_holding.get('data', {}).get('name', 'Unknown')} (ID: {existing_holding.get('id', 'Unknown')})")
@@ -881,7 +889,7 @@ def handler(event, context):
                             print(f"❌ No existing holding found, will create new one")
                         
                         if existing_holding:
-                            # Update existing holding
+                            # Update existing holding in InvestApp table
                             existing = existing_holding
                             existing_data = existing.get('data', {})
                             
@@ -901,42 +909,43 @@ def handler(event, context):
                             if 'isin' in stock and stock['isin']:
                                 standardized_name = _get_company_name_by_isin(stock['isin'])
                             
-                            # Update both the nested data and top-level fields
-                            # Also update ISIN, sector, and name if available and missing
-                            update_expression = "SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at"
-                            expression_values = {
-                                ':units': Decimal(str(new_units)),
-                                ':invested': Decimal(str(new_invested)),
-                                ':current': Decimal(str(new_current)),
-                                ':updated_at': now
-                            }
+                            # Update the data object
+                            updated_data = existing_data.copy()
+                            updated_data['units'] = new_units
+                            updated_data['investedAmount'] = new_invested
+                            updated_data['currentValue'] = new_current
+                            updated_data['updated_at'] = now
                             
                             # Add ISIN if available and missing
-                            if 'isin' in stock and stock['isin'] and not existing_data.get('isin'):
-                                update_expression += ", #data.isin = :isin"
-                                expression_values[':isin'] = stock['isin']
+                            if 'isin' in stock and stock['isin'] and not updated_data.get('isin'):
+                                updated_data['isin'] = stock['isin']
                             
                             # Add sector if available and missing
-                            if 'sector' in stock and stock['sector'] and not existing_data.get('sector'):
-                                update_expression += ", #data.sector = :sector"
-                                expression_values[':sector'] = stock['sector']
+                            if 'sector' in stock and stock['sector'] and not updated_data.get('sector'):
+                                updated_data['sector'] = stock['sector']
                             
                             # Update name to standardized name if available
-                            if standardized_name and standardized_name != existing_data.get('name'):
-                                update_expression += ", #data.name = :name"
-                                expression_values[':name'] = standardized_name
+                            if standardized_name and standardized_name != updated_data.get('name'):
+                                updated_data['name'] = standardized_name
                             
-                            holdings_table.update_item(
-                                Key={'id': existing['id']},
-                                UpdateExpression=update_expression,
+                            # Update the holding in InvestApp table
+                            invest_table.update_item(
+                                Key={
+                                    'pk': existing['pk'],
+                                    'sk': existing['sk']
+                                },
+                                UpdateExpression="SET #data = :data, updatedAt = :updated_at",
                                 ExpressionAttributeNames={
                                     '#data': 'data'
                                 },
-                                ExpressionAttributeValues=expression_values
+                                ExpressionAttributeValues={
+                                    ':data': _convert_floats_to_decimals(updated_data),
+                                    ':updated_at': now
+                                }
                             )
                             updated_count += 1
                         else:
-                            # Add new holding
+                            # Add new holding to InvestApp table
                             holding_id = str(uuid.uuid4())
                             now = datetime.utcnow().isoformat()
                             
@@ -948,39 +957,38 @@ def handler(event, context):
                             # Use standardized name if available, otherwise use broker name
                             display_name = standardized_name if standardized_name else stock['name']
                             
-                            # Create holding data object (nested format)
+                            # Create holding data object
                             holding_data = {
                                 'id': holding_id,
-                                'user_id': user_id,
                                 'instrumentClass': 'Stocks',
                                 'name': display_name,  # Use standardized name
                                 'symbol': stock['symbol'],
                                 'isin': stock.get('isin', ''),  # Add ISIN if available
                                 'sector': stock.get('sector', ''),  # Add sector if available
-                                'units': Decimal(str(stock['units'])),
-                                'price': Decimal(str(stock['price'])),
-                                'investedAmount': Decimal(str(stock['investedAmount'])),
-                                'currentValue': Decimal(str(stock['currentValue'])),
+                                'units': stock['units'],
+                                'price': stock['price'],
+                                'investedAmount': stock['investedAmount'],
+                                'currentValue': stock['currentValue'],
                                 'asset_class': 'Stocks',
                                 'portfolio_role': 'Equity',
                                 'created_at': now,
                                 'updated_at': now
                             }
                             
-                            # Create main holding item with nested data structure
+                            # Create new holding item in InvestApp table structure
                             new_holding = {
-                                'id': holding_id,
-                                'user_id': user_id,
-                                'portfolio_id': user_id,  # Using user_id as portfolio_id for consistency
-                                'symbol': stock['symbol'],  # Top-level symbol for GSI
-                                'data': holding_data,
-                                'asset_class': 'Stocks',
-                                'portfolio_role': 'Equity',
-                                'created_at': now,
-                                'updated_at': now
+                                'pk': f'USER#{user_sub}',
+                                'sk': f'HOLDING#{portfolio_id}#{holding_id}',
+                                'entityType': 'HOLDING',
+                                'portfolioId': portfolio_id,
+                                'holdingId': holding_id,
+                                'data': _convert_floats_to_decimals(holding_data),
+                                'updatedAt': now,
+                                'GSI1PK': f'PORTFOLIO#{portfolio_id}',
+                                'GSI1SK': f'HOLDING#{holding_id}',
                             }
                             
-                            holdings_table.put_item(Item=new_holding)
+                            invest_table.put_item(Item=new_holding)
                             imported_count += 1
                             
                     except Exception as stock_error:
