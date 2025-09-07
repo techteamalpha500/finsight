@@ -253,6 +253,86 @@ def build_lambda_packages():
         # Clean up build directory
         shutil.rmtree(build_dir)
 
+def create_prebuilt_package():
+    """Create a pre-built package for import-stocks Lambda"""
+    print("📦 Creating pre-built import-stocks package...")
+    
+    # Paths
+    lambda_src = Path("backend/lambda/import-stocks")
+    build_dir = Path("import_stocks_build")
+    zip_file = Path("import_stocks_fixed.zip")
+    
+    if not lambda_src.exists():
+        print(f"❌ Lambda source not found: {lambda_src}")
+        return False
+    
+    # Clean up previous builds
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+    if zip_file.exists():
+        zip_file.unlink()
+    
+    # Create build directory
+    build_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copy Lambda source files
+    print("📋 Copying source files...")
+    for file in lambda_src.glob("*.py"):
+        shutil.copy2(file, build_dir)
+        print(f"  ✅ Copied {file.name}")
+    
+    # Install dependencies
+    requirements_file = lambda_src / "requirements.txt"
+    if requirements_file.exists():
+        print("📦 Installing dependencies...")
+        try:
+            run_command([
+                "pip3", "install", "-r", str(requirements_file), 
+                "-t", str(build_dir), "--upgrade", "--no-cache-dir"
+            ])
+            print("✅ Dependencies installed successfully")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to install dependencies: {e}")
+            return False
+        
+        # Verify critical dependencies
+        print("🔍 Verifying dependencies...")
+        critical_deps = ['boto3', 'openpyxl', 'PyPDF2', 'pdfplumber']
+        missing_deps = []
+        
+        for dep in critical_deps:
+            dep_found = False
+            for item in build_dir.iterdir():
+                if item.is_dir() and (item.name == dep or item.name.startswith(f"{dep}-")):
+                    dep_found = True
+                    print(f"  ✅ {dep} found")
+                    break
+            
+            if not dep_found:
+                missing_deps.append(dep)
+                print(f"  ❌ {dep} missing")
+        
+        if missing_deps:
+            print(f"❌ Missing dependencies: {missing_deps}")
+            return False
+        
+        print("✅ All dependencies verified")
+    
+    # Create deployment ZIP
+    print("📦 Creating deployment ZIP...")
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file_path in build_dir.rglob("*"):
+            if file_path.is_file():
+                arcname = file_path.relative_to(build_dir)
+                zipf.write(file_path, arcname)
+    
+    print(f"✅ Created {zip_file}")
+    print(f"ZIP size: {zip_file.stat().st_size / (1024*1024):.1f} MB")
+    
+    # Clean up build directory
+    shutil.rmtree(build_dir)
+    return True
+
 def deploy_terraform():
     """Deploy using Terraform"""
     print("🚀 Starting Terraform deployment...")
@@ -403,9 +483,26 @@ def main():
     print("  ✅ ZIP packages will be validated")
     print("  ✅ Deployment will fail if dependencies are missing")
     print("=" * 60)
+    print("📝 IMPORTANT: If import-stocks Lambda fails to deploy with dependencies:")
+    print("  1. Use the pre-built package: import_stocks_fixed.zip")
+    print("  2. Upload manually via AWS Console or CLI")
+    print("  3. Package includes all dependencies (36MB)")
+    print("=" * 60)
     
     # Check prerequisites
     check_prerequisites()
+    
+    # Ask if user wants to create pre-built package
+    print("\n🤔 Do you want to create a pre-built import-stocks package? (y/N)")
+    print("   This is useful if Terraform deployment fails with dependencies.")
+    response = input().strip().lower()
+    
+    if response in ['y', 'yes']:
+        if create_prebuilt_package():
+            print("✅ Pre-built package created: import_stocks_fixed.zip")
+            print("📝 You can upload this manually if Terraform deployment fails")
+        else:
+            print("❌ Failed to create pre-built package")
     
     # Build all Lambda packages
     build_lambda_packages()
