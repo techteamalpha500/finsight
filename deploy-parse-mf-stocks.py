@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""
+Individual Deployment Script for parse-mf-stocks Lambda
+This script handles deployment of only the parse-mf-stocks Lambda function
+"""
+
+import os
+import sys
+import subprocess
+import shutil
+import zipfile
+from pathlib import Path
+
+def run_command(cmd, check=True, capture_output=False):
+    """Run a shell command and return the result"""
+    print(f"🔧 Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, check=check, capture_output=capture_output, text=True)
+    if capture_output:
+        return result.stdout.strip()
+    return result
+
+def check_prerequisites():
+    """Check if required tools are installed"""
+    print("🔍 Checking prerequisites...")
+    
+    # Check Terraform
+    try:
+        run_command(["terraform", "version"], capture_output=True)
+        print("✅ Terraform is installed")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("❌ Terraform is not installed. Please install Terraform first.")
+        sys.exit(1)
+    
+    # Check AWS CLI
+    try:
+        run_command(["aws", "sts", "get-caller-identity"], capture_output=True)
+        print("✅ AWS CLI is configured")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("❌ AWS CLI is not configured. Please run 'aws configure' first.")
+        sys.exit(1)
+
+def build_parse_mf_stocks_package():
+    """Build parse-mf-stocks Lambda package with dependencies"""
+    print("🔧 Building parse-mf-stocks Lambda package...")
+    
+    # Paths for parse-mf-stocks
+    lambda_src = Path("backend/lambda/parse-mf-stocks")
+    build_dir = Path("terraform/parse_mf_stocks_build")
+    zip_file = Path("terraform/parse_mf_stocks.zip")
+    
+    if not lambda_src.exists():
+        print(f"❌ Lambda source directory not found: {lambda_src}")
+        sys.exit(1)
+    
+    # Clean up previous build
+    if build_dir.exists():
+        print(f"🧹 Cleaning up previous build directory: {build_dir}")
+        shutil.rmtree(build_dir)
+    
+    if zip_file.exists():
+        print(f"🧹 Removing previous zip file: {zip_file}")
+        zip_file.unlink()
+    
+    # Create build directory
+    build_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copy Lambda source code
+    print(f"📁 Copying Lambda source code from {lambda_src} to {build_dir}")
+    for item in lambda_src.iterdir():
+        if item.is_file():
+            shutil.copy2(item, build_dir)
+        elif item.is_dir():
+            shutil.copytree(item, build_dir / item.name)
+    
+    # Install dependencies
+    requirements_file = build_dir / "requirements.txt"
+    if requirements_file.exists():
+        print("📦 Installing Python dependencies...")
+        run_command([
+            "pip3", "install", "-r", str(requirements_file), 
+            "-t", str(build_dir), "--upgrade"
+        ])
+        
+        # Verify critical dependencies
+        print("🔍 Verifying critical dependencies...")
+        critical_deps = ['requests', 'boto3', 'charset_normalizer', 'urllib3', 'certifi', 'idna']
+        for dep in critical_deps:
+            dep_path = build_dir / dep
+            if dep_path.exists():
+                print(f"✅ {dep} found")
+            else:
+                print(f"❌ {dep} not found - checking for variations...")
+                # Check for variations
+                found = False
+                for item in build_dir.iterdir():
+                    if item.is_dir() and dep.replace('-', '_') in item.name.lower():
+                        print(f"✅ Found {item.name} (variation of {dep})")
+                        found = True
+                        break
+                if not found:
+                    print(f"⚠️  Warning: {dep} dependency not found")
+    else:
+        print("⚠️  No requirements.txt found, skipping dependency installation")
+    
+    # Create ZIP file
+    print(f"📦 Creating ZIP file: {zip_file}")
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(build_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(build_dir)
+                zipf.write(file_path, arcname)
+    
+    # Verify ZIP contents
+    print("🔍 Verifying ZIP contents...")
+    with zipfile.ZipFile(zip_file, 'r') as zipf:
+        files = zipf.namelist()
+        print(f"📊 ZIP contains {len(files)} files")
+        
+        # Check for critical files
+        critical_files = ['main.py']
+        for file in critical_files:
+            if file in files:
+                print(f"✅ {file} found in ZIP")
+            else:
+                print(f"❌ {file} not found in ZIP")
+    
+    print(f"✅ parse-mf-stocks package built successfully: {zip_file}")
+    return zip_file
+
+def deploy_terraform():
+    """Deploy only the parse-mf-stocks Lambda using Terraform"""
+    print("🚀 Deploying parse-mf-stocks Lambda with Terraform...")
+    
+    # Initialize Terraform
+    print("🔧 Initializing Terraform...")
+    run_command(["terraform", "init"])
+    
+    # Plan deployment
+    print("📋 Planning Terraform deployment...")
+    run_command(["terraform", "plan", "-target=aws_lambda_function.parse_mf_stocks"])
+    
+    # Apply deployment
+    print("🚀 Applying Terraform deployment...")
+    run_command(["terraform", "apply", "-target=aws_lambda_function.parse_mf_stocks", "-auto-approve"])
+    
+    print("✅ parse-mf-stocks Lambda deployed successfully!")
+
+def main():
+    """Main deployment function"""
+    print("🚀 Starting parse-mf-stocks Lambda deployment...")
+    print("=" * 60)
+    
+    # Check prerequisites
+    check_prerequisites()
+    
+    # Build Lambda package
+    build_parse_mf_stocks_package()
+    
+    # Deploy with Terraform
+    deploy_terraform()
+    
+    print("=" * 60)
+    print("🎉 parse-mf-stocks Lambda deployment completed successfully!")
+    print("📊 You can now test the parse-mf-stocks functionality")
+
+if __name__ == "__main__":
+    main()
