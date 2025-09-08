@@ -150,6 +150,7 @@ export default function HoldingsPage() {
 		instrumentClass: "Stocks" as AssetClass,
 		name: "",
 		symbol: "",
+		isin: "",
 		units: "",
 		price: "",
 		investedAmount: "",
@@ -586,6 +587,7 @@ export default function HoldingsPage() {
 				instrumentClass: originalForm.instrumentClass as AssetClass,
 				name: originalForm.name,
 				symbol: originalForm.symbol || "",
+				isin: (originalForm as any).isin || "",
 				units: originalForm.units?.toString() || "",
 				price: originalForm.price?.toString() || "",
 				investedAmount: originalForm.investedAmount?.toString() || "",
@@ -597,7 +599,7 @@ export default function HoldingsPage() {
 			setMfSearchTerm(originalForm.name);
 		} else {
 			// If adding new, reset to empty form
-			setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "", broker: "zerodha" });
+			setForm({ instrumentClass: "Stocks", name: "", symbol: "", isin: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "", broker: "zerodha" });
 			// Reset stock functionality
 			setStockSearchTerm("");
 			setSelectedStock(null);
@@ -740,6 +742,7 @@ export default function HoldingsPage() {
 			instrumentClass: instrumentClass,
 			name: form.name.trim(),
 			symbol: form.symbol.trim() || undefined,
+			isin: form.isin.trim() || undefined,
 			units: calculatedUnits || (form.units ? parseFloat(form.units) : undefined),
 			price: form.price ? parseFloat(form.price) : undefined,
 			investedAmount: calculatedInvestedAmount || (form.investedAmount ? parseFloat(form.investedAmount) : undefined),
@@ -1755,7 +1758,7 @@ export default function HoldingsPage() {
 																		onClick={() => {
 																			setSelectedStock(stock);
 																			setStockSearchTerm(stock.companyName);
-															setForm({ ...form, name: stock.companyName, symbol: stock.symbol, price: '' });
+															setForm({ ...form, name: stock.companyName, symbol: stock.symbol, isin: stock.isinNumber, price: '' });
 															setShowStockDropdown(false);
 															setFilteredStockOptions([]);
 														}}

@@ -52,6 +52,7 @@ export interface HoldingData {
   instrumentClass: string;
   name: string;
   symbol?: string;
+  isin?: string;
   units?: number;
   price?: number;
   investedAmount?: number;

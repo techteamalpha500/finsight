@@ -141,10 +141,10 @@ def _find_existing_holding(user_id, stock, import_broker=None):
             
             print(f"🔍 Checking holding: {holding_data.get('name', 'Unknown')} (broker: {existing_broker}, isin: {existing_isin}, symbol: {existing_symbol})")
             
-            # Match by broker + ISIN + symbol
+            # Match by broker + ISIN + symbol (normalize case)
             broker_match = existing_broker.lower() == import_broker.lower() if import_broker else True
             isin_match = stock.get('isin') and existing_isin and stock['isin'] == existing_isin
-            symbol_match = stock.get('symbol') and existing_symbol and stock['symbol'] == existing_symbol
+            symbol_match = stock.get('symbol') and existing_symbol and stock['symbol'].upper() == existing_symbol.upper()
             
             if broker_match and (isin_match or symbol_match):
                 print(f"✅ Match found: {holding_data.get('name', 'Unknown')} (Broker: {existing_broker}, ISIN: {isin_match}, Symbol: {symbol_match})")
