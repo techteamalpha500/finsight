@@ -4,12 +4,6 @@ variable "lambda_name" {
   description = "Lambda function name"
 }
 
-variable "groq_api_key" {
-  type        = string
-  description = "Groq API key for AI categorization"
-  default     = ""
-  sensitive   = true
-}
 
 variable "cognito_user_pool_id" {
   type        = string
@@ -81,6 +75,24 @@ resource "aws_iam_role_policy" "lambda_kms_access" {
   })
 }
 
+resource "aws_iam_role_policy" "lambda_ssm_access" {
+  name = "${var.lambda_name}-ssm-access"
+  role = aws_iam_role.lambda_exec.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement: [{
+      Effect: "Allow",
+      Action: [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      Resource: [
+        "arn:aws:ssm:${var.aws_region}:*:parameter/groq_api_key"
+      ]
+    }]
+  })
+}
+
 resource "aws_lambda_function" "expenses" {
   function_name = var.lambda_name
   role          = aws_iam_role.lambda_exec.arn
@@ -95,7 +107,6 @@ resource "aws_lambda_function" "expenses" {
     variables = {
       REGION                   = var.aws_region
       EXPENSES_TABLE           = aws_dynamodb_table.expenses.name
-      GROQ_API_KEY             = var.groq_api_key
       CATEGORY_RULES_TABLE     = aws_dynamodb_table.category_rules.name
       USER_BUDGETS_TABLE       = aws_dynamodb_table.user_budgets.name
       GROQ_MODEL               = "llama-3.1-8b-instant"

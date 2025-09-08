@@ -1,9 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 
 // Utilities
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" }));
+
+// Cache for Parameter Store values
+let parameterCache: { [key: string]: string } = {};
+
+async function getParameterValue(parameterName: string, decrypt: boolean = true): Promise<string> {
+  if (parameterCache[parameterName]) {
+    return parameterCache[parameterName];
+  }
+  
+  try {
+    const ssmClient = new SSMClient({ region: process.env.AWS_REGION || "us-east-1" });
+    const command = new GetParameterCommand({
+      Name: parameterName,
+      WithDecryption: decrypt
+    });
+    const response = await ssmClient.send(command);
+    const value = response.Parameter?.Value || "";
+    parameterCache[parameterName] = value;
+    return value;
+  } catch (error) {
+    console.error(`Error fetching parameter ${parameterName}:`, error);
+    return "";
+  }
+}
+
+async function getGroqApiKey(): Promise<string> {
+  return await getParameterValue("groq_api_key", true);
+}
 function extractRuleTerm(rawText: string): string {
   const lower = rawText.toLowerCase();
   // Try preposition phrase
@@ -31,7 +60,7 @@ const ALLOWED_CATEGORIES = [
 
 // Step 2.5: Real AI categorization via Groq
 async function getCategoryFromAI(rawText: string): Promise<{ category: string; confidence: number }> {
-  const apiKey = (process.env.GROQ_API_KEY || "").trim();
+  const apiKey = (await getGroqApiKey()).trim();
   if (!apiKey) return { category: "", confidence: 0 };
   try {
     const system = `You are a financial expense categorizer. Allowed categories: ${ALLOWED_CATEGORIES.join(", ")}. Respond ONLY JSON: {"category": string, "confidence": number between 0 and 1}.`;

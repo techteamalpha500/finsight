@@ -15,8 +15,34 @@ AWS_REGION = os.environ.get("AWS_REGION") or os.environ.get("REGION") or "us-eas
 EXPENSES_TABLE = os.environ.get("EXPENSES_TABLE", "Expenses")
 CATEGORY_RULES_TABLE = os.environ.get("CATEGORY_RULES_TABLE", "CategoryRules")
 USER_BUDGETS_TABLE = os.environ.get("USER_BUDGETS_TABLE", "UserBudgets")
-GROQ_API_KEY = (os.environ.get("GROQ_API_KEY") or "").strip()
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.1-70b-versatile")
+
+# Initialize SSM client for Parameter Store
+ssm_client = boto3.client('ssm', region_name=AWS_REGION)
+
+# Cache for Parameter Store values
+_parameter_cache = {}
+
+def get_parameter_value(parameter_name: str, decrypt: bool = True) -> str:
+    """Get parameter value from AWS Parameter Store with caching"""
+    if parameter_name in _parameter_cache:
+        return _parameter_cache[parameter_name]
+    
+    try:
+        response = ssm_client.get_parameter(
+            Name=parameter_name,
+            WithDecryption=decrypt
+        )
+        value = response['Parameter']['Value']
+        _parameter_cache[parameter_name] = value
+        return value
+    except Exception as e:
+        print(f"Error fetching parameter {parameter_name}: {str(e)}")
+        return ""
+
+def get_groq_api_key() -> str:
+    """Get GROQ API key from Parameter Store"""
+    return get_parameter_value("groq_api_key", decrypt=True)
 
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 expenses_table = dynamodb.Table(EXPENSES_TABLE)
@@ -65,8 +91,9 @@ ALLOWED_CATEGORIES = [
 
 
 def _get_category_from_ai(raw_text: str):
-    if not GROQ_API_KEY:
-        print("GROQ_API_KEY missing")
+    groq_api_key = get_groq_api_key()
+    if not groq_api_key:
+        print("GROQ_API_KEY missing from Parameter Store")
         return {"category": "", "confidence": 0.0}
     try:
         system_prompt = (
@@ -87,7 +114,7 @@ def _get_category_from_ai(raw_text: str):
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Authorization": f"Bearer {groq_api_key}",
                 "User-Agent": "finsight-lambda/1.0 (+https://github.com/arunclementcristiano/finsight)"
             },
             method="POST",

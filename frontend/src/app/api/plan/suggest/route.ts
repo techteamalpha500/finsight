@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 
 // Allowed asset classes and basic guardrails
 const ALLOWED_CLASSES = ["Stocks","Equity MF","Gold","Real Estate","Debt","Liquid"] as const;
@@ -6,6 +7,34 @@ const ALLOWED_CLASSES = ["Stocks","Equity MF","Gold","Real Estate","Debt","Liqui
 type AllowedClass = typeof ALLOWED_CLASSES[number];
 
 type AiResult = { buckets: Array<{ class: string; pct: number; min?: number; max?: number; range?: [number, number] }>; rationale?: string; confidence?: number; diag?: { missingKey?: boolean; status?: number; parseError?: string; raw?: string } };
+
+// Cache for Parameter Store values
+let parameterCache: { [key: string]: string } = {};
+
+async function getParameterValue(parameterName: string, decrypt: boolean = true): Promise<string> {
+	if (parameterCache[parameterName]) {
+		return parameterCache[parameterName];
+	}
+	
+	try {
+		const ssmClient = new SSMClient({ region: process.env.AWS_REGION || "us-east-1" });
+		const command = new GetParameterCommand({
+			Name: parameterName,
+			WithDecryption: decrypt
+		});
+		const response = await ssmClient.send(command);
+		const value = response.Parameter?.Value || "";
+		parameterCache[parameterName] = value;
+		return value;
+	} catch (error) {
+		console.error(`Error fetching parameter ${parameterName}:`, error);
+		return "";
+	}
+}
+
+async function getGroqApiKey(): Promise<string> {
+	return await getParameterValue("groq_api_key", true);
+}
 
 function extractJson(text: string): any {
 	try { return JSON.parse(text); } catch {}
@@ -24,7 +53,7 @@ function extractJson(text: string): any {
 }
 
 async function callGroqForAllocation(prompt: string): Promise<AiResult> {
-	const apiKey = (process.env.GROQ_API_KEY || "").trim();
+	const apiKey = (await getGroqApiKey()).trim();
 	if (!apiKey) return { buckets: [], diag: { missingKey: true } };
 	try {
 		const system = `You are a portfolio allocation assistant. Allowed classes: ${ALLOWED_CLASSES.join(", ")}. Respond ONLY JSON like {"buckets":[{"class":"Stocks","pct":35,"min":30,"max":40},...], "rationale": string, "confidence": 0.0-1.0}. Percentages must sum to ~100. For each bucket, include a reasonable comfort range (min/max in percent) that contains pct.`;
