@@ -103,23 +103,23 @@ def _is_symbol_company_match(symbol, company_name):
         return False
 
 def _is_broker_compatible(existing_broker, import_broker):
-    """Check if brokers are compatible for merging"""
+    """Check if brokers are compatible for finding existing holdings"""
     if not import_broker:
-        return True  # If no import broker specified, allow merging
+        return True  # If no import broker specified, allow finding
     
-    # Manual entries can always be overridden by any broker import
+    # Manual entries can be found by any broker import
     if existing_broker == 'manual':
         return True
     
-    # "Other" entries can be overridden by CAS imports (broker = "other")
+    # "Other" entries can be found by CAS imports (broker = "other")
     if existing_broker == 'other' and import_broker == 'other':
         return True
     
-    # Same broker can be merged (e.g., Zerodha UI entry + Zerodha import)
-    if existing_broker == import_broker:
+    # Same broker can be found (e.g., Zerodha UI entry + Zerodha import)
+    if existing_broker.lower() == import_broker.lower():
         return True
     
-    # Different brokers should NOT be merged (e.g., Groww UI entry + Zerodha import)
+    # Different brokers should NOT be found (e.g., Groww UI entry + Zerodha import)
     return False
 
 def _find_existing_holding(user_id, stock, import_broker=None):
@@ -157,12 +157,12 @@ def _find_existing_holding(user_id, stock, import_broker=None):
         # Strategy 2: Match by symbol (exact match)
         print(f"🔍 Strategy 2: Trying symbol match for {stock.get('symbol', 'None')}")
         try:
-            # Query InvestApp table for holdings with matching symbol
-            scan_response = invest_table.scan(
-                FilterExpression='pk = :pk AND contains(#data, :symbol)',
+            # Query holdings table for holdings with matching symbol
+            scan_response = holdings_table.scan(
+                FilterExpression='user_id = :user_id AND contains(#data, :symbol)',
                 ExpressionAttributeNames={'#data': 'data'},
                 ExpressionAttributeValues={
-                    ':pk': f'USER#{user_sub}',
+                    ':user_id': user_id,
                     ':symbol': stock['symbol']
                 }
             )
@@ -173,8 +173,13 @@ def _find_existing_holding(user_id, stock, import_broker=None):
             symbol_matches = [h for h in items if h.get('data', {}).get('symbol') == stock['symbol']]
             print(f"🔍 Exact symbol matches: {len(symbol_matches)}")
             if symbol_matches:
-                print(f"✅ Symbol match found: {symbol_matches[0].get('data', {}).get('name', 'Unknown')}")
-                return symbol_matches[0]
+                # Check broker compatibility
+                existing_broker = symbol_matches[0].get('data', {}).get('broker', 'manual')
+                if _is_broker_compatible(existing_broker, import_broker):
+                    print(f"✅ Symbol match found: {symbol_matches[0].get('data', {}).get('name', 'Unknown')} (Broker: {existing_broker})")
+                    return symbol_matches[0]
+                else:
+                    print(f"⚠️ Symbol match found but broker incompatible: {existing_broker} vs {import_broker}")
         except Exception as e:
             print(f"Symbol query failed: {e}")
         
@@ -186,9 +191,9 @@ def _find_existing_holding(user_id, stock, import_broker=None):
             print(f"🔍 Company name from ISIN: {company_name}")
             if company_name:
                 # Scan all holdings and check for name similarity
-                all_holdings_response = invest_table.scan(
-                    FilterExpression='pk = :pk',
-                    ExpressionAttributeValues={':pk': f'USER#{user_sub}'}
+                all_holdings_response = holdings_table.scan(
+                    FilterExpression='user_id = :user_id',
+                    ExpressionAttributeValues={':user_id': user_id}
                 )
                 
                 all_holdings = all_holdings_response.get('Items', [])
@@ -196,13 +201,18 @@ def _find_existing_holding(user_id, stock, import_broker=None):
                 for holding in all_holdings:
                     holding_name = holding.get('data', {}).get('name', '').lower()
                     holding_symbol = holding.get('data', {}).get('symbol', '').lower()
+                    existing_broker = holding.get('data', {}).get('broker', 'manual')
                     
-                    print(f"🔍 Checking holding: {holding_name} (symbol: {holding_symbol})")
+                    print(f"🔍 Checking holding: {holding_name} (symbol: {holding_symbol}, broker: {existing_broker})")
                     
                     # Check if company name matches holding name
                     if holding_name and (company_name.lower() in holding_name or holding_name in company_name.lower()):
-                        print(f"✅ Name match found: {holding_name}")
-                        return holding
+                        # Check broker compatibility
+                        if _is_broker_compatible(existing_broker, import_broker):
+                            print(f"✅ Name match found: {holding_name} (Broker: {existing_broker})")
+                            return holding
+                        else:
+                            print(f"⚠️ Name match found but broker incompatible: {existing_broker} vs {import_broker}")
                     
                     # Check if company name matches holding symbol (for cases like TATAMOTORS)
                     if holding_symbol and _is_symbol_company_match(holding_symbol, company_name):
