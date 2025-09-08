@@ -3,7 +3,7 @@ import React, { useMemo, useState, useRef } from "react";
 
 import type { AssetClass } from "../../domain/allocationEngine";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload, Lock, ExternalLink, AlertCircle, Info } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload, Lock, ExternalLink, AlertCircle, Info, DollarSign, TrendingDown, TrendingUp as TrendingUpIcon, Percent } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Card as PlanCard, CardContent as PlanCardContent, CardHeader as PlanCardHeader, CardTitle as PlanCardTitle } from "../../../components/Card";
 import { Button } from "../../../components/Button";
@@ -1039,6 +1039,9 @@ export default function HoldingsPage() {
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 				<PlanCard>
 					<PlanCardContent className="p-3 text-center">
+						<div className="flex items-center justify-center mb-2">
+							<DollarSign size={20} className="text-blue-600" />
+						</div>
 						<div className="text-xs text-muted-foreground mb-1">Total Value</div>
 						<div className="text-lg font-semibold text-foreground mb-1">₹{Math.round(totalValue).toLocaleString()}</div>
 						<div className="text-[10px] text-muted-foreground">Portfolio Worth</div>
@@ -1046,6 +1049,9 @@ export default function HoldingsPage() {
 				</PlanCard>
 				<PlanCard>
 					<PlanCardContent className="p-3 text-center">
+						<div className="flex items-center justify-center mb-2">
+							<TrendingUp size={20} className="text-green-600" />
+						</div>
 						<div className="text-xs text-muted-foreground mb-1">Invested</div>
 						<div className="text-lg font-semibold text-foreground mb-1">₹{Math.round(totalInvested).toLocaleString()}</div>
 						<div className="text-[10px] text-muted-foreground">Capital Deployed</div>
@@ -1053,6 +1059,13 @@ export default function HoldingsPage() {
 				</PlanCard>
 				<PlanCard>
 					<PlanCardContent className="p-3 text-center">
+						<div className="flex items-center justify-center mb-2">
+							{totalPL >= 0 ? (
+								<TrendingUpIcon size={20} className="text-emerald-600" />
+							) : (
+								<TrendingDown size={20} className="text-rose-600" />
+							)}
+						</div>
 						<div className="text-xs text-muted-foreground mb-1">P/L</div>
 						<div className={`text-lg font-semibold mb-1 ${totalPL >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
 							₹{Math.round(totalPL).toLocaleString()}
@@ -1062,6 +1075,9 @@ export default function HoldingsPage() {
 				</PlanCard>
 				<PlanCard>
 					<PlanCardContent className="p-3 text-center">
+						<div className="flex items-center justify-center mb-2">
+							<Percent size={20} className={totalPLPct >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
+						</div>
 						<div className="text-xs text-muted-foreground mb-1">P/L %</div>
 						<div className={`text-lg font-semibold mb-1 ${totalPLPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
 							{totalPLPct >= 0 ? `${totalPLPct.toFixed(2)}%` : "—"}
@@ -1083,33 +1099,66 @@ export default function HoldingsPage() {
 							</PlanCardTitle>
 						</PlanCardHeader>
 						<PlanCardContent className="p-4">
-						{/* Filters */}
-						<div className="mb-4 flex flex-wrap gap-3">
+						{/* Modern Filter Buttons */}
+						<div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+							{/* Asset Class Filter */}
 							<div className="flex items-center gap-2">
-								<label className="text-xs font-medium text-muted-foreground">Asset Class:</label>
-								<select
-									value={filterAssetClass || ''}
-									onChange={(e) => setFilterAssetClass(e.target.value || null)}
-									className="px-3 py-1.5 text-xs border border-border rounded-md bg-background"
-								>
-									<option value="">All Classes</option>
+								<span className="text-xs font-medium text-muted-foreground">Asset Class:</span>
+								<div className="flex items-center gap-1">
+									<button
+										onClick={() => setFilterAssetClass(null)}
+										className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+											!filterAssetClass 
+												? 'bg-primary text-primary-foreground' 
+												: 'bg-muted text-muted-foreground hover:bg-muted/80'
+										}`}
+									>
+										All
+									</button>
 									{uniqueAssetClasses.map(assetClass => (
-										<option key={assetClass} value={assetClass}>{assetClass}</option>
+										<button
+											key={assetClass}
+											onClick={() => setFilterAssetClass(assetClass)}
+											className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+												filterAssetClass === assetClass 
+													? 'bg-primary text-primary-foreground' 
+													: 'bg-muted text-muted-foreground hover:bg-muted/80'
+											}`}
+										>
+											{assetClass}
+										</button>
 									))}
-								</select>
+								</div>
 							</div>
+							
+							{/* Portfolio Role Filter */}
 							<div className="flex items-center gap-2">
-								<label className="text-xs font-medium text-muted-foreground">Portfolio Role:</label>
-								<select
-									value={filterAssetRole || ''}
-									onChange={(e) => setFilterAssetRole(e.target.value || null)}
-									className="px-3 py-1.5 text-xs border border-border rounded-md bg-background"
-								>
-									<option value="">All Roles</option>
-									<option value="Equity">Equity</option>
-									<option value="Defensive">Defensive</option>
-									<option value="Satellite">Satellite</option>
-								</select>
+								<span className="text-xs font-medium text-muted-foreground">Portfolio Role:</span>
+								<div className="flex items-center gap-1">
+									<button
+										onClick={() => setFilterAssetRole(null)}
+										className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+											!filterAssetRole 
+												? 'bg-primary text-primary-foreground' 
+												: 'bg-muted text-muted-foreground hover:bg-muted/80'
+										}`}
+									>
+										All
+									</button>
+									{['Equity', 'Defensive', 'Satellite'].map(role => (
+										<button
+											key={role}
+											onClick={() => setFilterAssetRole(role)}
+											className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+												filterAssetRole === role 
+													? 'bg-primary text-primary-foreground' 
+													: 'bg-muted text-muted-foreground hover:bg-muted/80'
+											}`}
+										>
+											{role}
+										</button>
+									))}
+								</div>
 							</div>
 						</div>
 						
@@ -1123,7 +1172,7 @@ export default function HoldingsPage() {
 												<th className="py-2 px-3 text-muted-foreground cursor-pointer" onClick={() => toggleSort('instrument')}>Instrument</th>
 												<th className="py-2 px-3 text-muted-foreground cursor-pointer" onClick={() => toggleSort('class')}>Asset Class / Portfolio Role</th>
 												<th className="py-2 px-3 text-muted-foreground">Units</th>
-												<th className="py-2 px-3 text-muted-foreground cursor-pointer" onClick={() => toggleSort('current')}>Price</th>
+												<th className="py-2 px-3 text-muted-foreground cursor-pointer" onClick={() => toggleSort('current')}>Avg Price</th>
 												<th className="py-2 px-3 text-muted-foreground text-right cursor-pointer" onClick={() => toggleSort('current')}>Current Value</th>
 												<th className="py-2 px-3 text-muted-foreground text-right cursor-pointer" onClick={() => toggleSort('invested')}>Invested Amount</th>
 												<th className="py-2 px-3 text-muted-foreground text-right cursor-pointer" onClick={() => toggleSort('pl')}>P/L</th>
@@ -1150,7 +1199,7 @@ export default function HoldingsPage() {
 															</div>
 														</td>
 														<td className="py-2 px-3">{holding.units?.toFixed(2) || '0.00'}</td>
-														<td className="py-2 px-3">₹{holding.price?.toLocaleString() || '0.00'}</td>
+														<td className="py-2 px-3">₹{(holding.price || 0).toFixed(2)}</td>
 														<td className="py-2 px-3 text-right">₹{currentValue.toLocaleString()}</td>
 														<td className="py-2 px-3 text-right">₹{investedAmount.toLocaleString()}</td>
 														<td className="py-2 px-3 text-right">
