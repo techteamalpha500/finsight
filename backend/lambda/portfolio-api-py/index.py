@@ -906,11 +906,28 @@ def handler(event, context):
                 for stock in stocks_data:
                     try:
                         # Validate stock data
+                        print(f"🔍 Validating stock: {stock.get('name', 'Unknown')}")
+                        print(f"🔍 Stock data: {stock}")
+                        
                         required_stock_fields = ['name', 'symbol', 'units', 'price', 'currentValue', 'investedAmount']
                         for field in required_stock_fields:
                             if field not in stock:
-                                errors.append(f"Stock {stock.get('name', 'Unknown')}: Missing field {field}")
+                                error_msg = f"Stock {stock.get('name', 'Unknown')}: Missing field {field}"
+                                print(f"❌ Validation error: {error_msg}")
+                                errors.append(error_msg)
                                 continue
+                        
+                        # Validate data types
+                        try:
+                            float(stock['units'])
+                            float(stock['price'])
+                            float(stock['investedAmount'])
+                            float(stock['currentValue'])
+                        except (ValueError, TypeError) as e:
+                            error_msg = f"Stock {stock.get('name', 'Unknown')}: Invalid numeric data - {str(e)}"
+                            print(f"❌ Data type error: {error_msg}")
+                            errors.append(error_msg)
+                            continue
                         
                         # Find existing holding using comprehensive matching
                         print(f"🔍 Looking for existing holding for stock: {stock.get('name', 'Unknown')} (Symbol: {stock.get('symbol', 'Unknown')}, ISIN: {stock.get('isin', 'None')})")
@@ -1023,7 +1040,10 @@ def handler(event, context):
                             imported_count += 1
                             
                     except Exception as stock_error:
-                        errors.append(f"Stock {stock.get('name', 'Unknown')}: {str(stock_error)}")
+                        error_msg = f"Stock {stock.get('name', 'Unknown')}: {str(stock_error)}"
+                        print(f"❌ Stock processing error: {error_msg}")
+                        print(f"❌ Stock data: {stock}")
+                        errors.append(error_msg)
                         continue
                 
                 response_data = {
