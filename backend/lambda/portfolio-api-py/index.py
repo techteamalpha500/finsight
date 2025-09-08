@@ -951,7 +951,14 @@ def handler(event, context):
                             # Calculate new values
                             new_units = current_units + float(stock['units'])
                             new_invested = current_invested + float(stock['investedAmount'])
-                            new_current = current_value + float(stock['currentValue'])
+                            # Recalculate current value using current price and total units
+                            current_price = float(stock['price'])  # Use the current market price from import
+                            new_current = new_units * current_price
+                            
+                            print(f"🔢 Merging calculation for {stock.get('name', 'Unknown')}:")
+                            print(f"   Current: {current_units} units, ₹{current_invested} invested, ₹{current_value} value")
+                            print(f"   Import: {stock['units']} units, ₹{stock['investedAmount']} invested, ₹{stock['currentValue']} value")
+                            print(f"   Result: {new_units} units, ₹{new_invested} invested, ₹{new_current} value (price: ₹{current_price})")
                             now = datetime.utcnow().isoformat()
                             
                             # Get standardized company name if ISIN is available
