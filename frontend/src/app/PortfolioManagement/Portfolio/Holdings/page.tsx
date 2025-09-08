@@ -470,41 +470,8 @@ export default function HoldingsPage() {
 		});
 	}
 
-	const sortedHoldings = useMemo(() => {
-		const list = [...filteredHoldings];
-		list.sort((a, b) => {
-			let av = 0 as any, bv = 0 as any;
-			switch (sortKey) {
-				case 'instrument':
-					av = a.name || '';
-					bv = b.name || '';
-					return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-				case 'class':
-					// Use asset_class from holdings table if available, fallback to instrumentClass
-					av = a.asset_class || a.instrumentClass || '';
-					bv = b.asset_class || b.instrumentClass || '';
-					return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-				case 'current':
-					av = computeHoldingValue(a);
-					bv = computeHoldingValue(b);
-					return sortDir === 'asc' ? av - bv : bv - av;
-				case 'invested':
-					av = computeInvestedAmount(a);
-					bv = computeInvestedAmount(b);
-					return sortDir === 'asc' ? av - bv : bv - av;
-				case 'pl':
-					av = computeHoldingValue(a) - computeInvestedAmount(a);
-					bv = computeHoldingValue(b) - computeInvestedAmount(b);
-					return sortDir === 'asc' ? av - bv : bv - av;
-				case 'created_at':
-				default:
-					av = a && (a as any).created_at ? new Date((a as any).created_at).getTime() : 0;
-					bv = b && (b as any).created_at ? new Date((b as any).created_at).getTime() : 0;
-					return sortDir === 'asc' ? av - bv : bv - av;
-			}
-		});
-		return list;
-	}, [filteredHoldings, sortKey, sortDir]);
+	// Holdings are already sorted by updated_at in loadHoldingsData, so we just use filteredHoldings
+	const sortedHoldings = filteredHoldings;
 
 	// Calculate totals for KPI cards - using filtered data
 	const totalValue = useMemo(() => (filteredHoldings || []).reduce((s: number, h: HoldingData) => s + computeHoldingValue(h), 0), [filteredHoldings]);
@@ -1147,10 +1114,7 @@ export default function HoldingsPage() {
 													<React.Fragment key={holding.id}>
 														<tr className="border-t border-border/50">
 														<td className="py-2 px-3 font-medium">
-															<div className="text-foreground">{holding.name}</div>
-															{holding.symbol && (
-																<div className="text-xs text-muted-foreground mt-0.5">{holding.symbol}</div>
-															)}
+															<div className="text-foreground">{holding.symbol || holding.name}</div>
 														</td>
 														<td className="py-2 px-3">
 															<div className="space-y-0.5">
@@ -1206,45 +1170,18 @@ export default function HoldingsPage() {
 															</div>
 														</td>
 													</tr>
-													{/* Breakdown Row */}
-													{holding.breakdown && holdingsWithBreakdown.has(holding.id) && (
-														<tr>
-															<td colSpan={7} className="px-3 py-2">
-																<div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-																	<div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-																		📊 {holding.breakdown.operation}
-																	</div>
-																	<div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-																		{holding.breakdown.previous_units !== undefined && (
-																			<div>
-																				<div className="text-muted-foreground">Previous Units</div>
-																				<div className="font-medium">{holding.breakdown.previous_units}</div>
-																			</div>
-																		)}
-																		{holding.breakdown.added_units !== undefined && (
-																			<div>
-																				<div className="text-muted-foreground">Added Units</div>
-																				<div className="font-medium text-green-600">+{holding.breakdown.added_units}</div>
-																			</div>
-																		)}
-																		{holding.breakdown.new_units !== undefined && (
-																			<div>
-																				<div className="text-muted-foreground">New Total</div>
-																				<div className="font-medium">{holding.breakdown.new_units}</div>
-																			</div>
-																		)}
-																		<div>
-																			<div className="text-muted-foreground">Broker</div>
-																			<div className="font-medium">{holding.breakdown.broker}</div>
+														{/* Simple Breakdown Row */}
+														{holding.breakdown && holdingsWithBreakdown.has(holding.id) && (
+															<tr>
+																<td colSpan={7} className="px-3 py-2">
+																	<div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2">
+																		<div className="text-xs text-blue-700 dark:text-blue-300">
+																			{holding.breakdown.operation} • {holding.breakdown.broker} • {new Date(holding.breakdown.timestamp).toLocaleDateString()}
 																		</div>
 																	</div>
-																	<div className="text-xs text-muted-foreground mt-2">
-																		{new Date(holding.breakdown.timestamp).toLocaleString()}
-																	</div>
-																</div>
-															</td>
-														</tr>
-													)}
+																</td>
+															</tr>
+														)}
 													</React.Fragment>
 												);
 											})}
@@ -1265,10 +1202,7 @@ export default function HoldingsPage() {
 												{/* Header with Instrument and Actions */}
 												<div className="flex items-start justify-between mb-3">
 													<div className="flex-1">
-														<div className="font-medium text-foreground text-sm mb-1">{holding.name}</div>
-														{holding.symbol && (
-															<div className="text-xs text-muted-foreground mb-1">{holding.symbol}</div>
-														)}
+														<div className="font-medium text-foreground text-sm mb-1">{holding.symbol || holding.name}</div>
 														<div className="text-xs text-muted-foreground">
 															{holding.asset_class || holding.instrumentClass} • {holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass)}
 														</div>
@@ -1337,39 +1271,12 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 												
-												{/* Breakdown Display */}
+												{/* Simple Breakdown Display */}
 												{holding.breakdown && holdingsWithBreakdown.has(holding.id) && (
 													<div className="mt-3 pt-3 border-t border-border">
-														<div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-															<div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-																📊 {holding.breakdown.operation}
-															</div>
-															<div className="grid grid-cols-2 gap-3 text-xs">
-																{holding.breakdown.previous_units !== undefined && (
-																	<div>
-																		<div className="text-muted-foreground">Previous Units</div>
-																		<div className="font-medium">{holding.breakdown.previous_units}</div>
-																	</div>
-																)}
-																{holding.breakdown.added_units !== undefined && (
-																	<div>
-																		<div className="text-muted-foreground">Added Units</div>
-																		<div className="font-medium text-green-600">+{holding.breakdown.added_units}</div>
-																	</div>
-																)}
-																{holding.breakdown.new_units !== undefined && (
-																	<div>
-																		<div className="text-muted-foreground">New Total</div>
-																		<div className="font-medium">{holding.breakdown.new_units}</div>
-																	</div>
-																)}
-																<div>
-																	<div className="text-muted-foreground">Broker</div>
-																	<div className="font-medium">{holding.breakdown.broker}</div>
-																</div>
-															</div>
-															<div className="text-xs text-muted-foreground mt-2">
-																{new Date(holding.breakdown.timestamp).toLocaleString()}
+														<div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2">
+															<div className="text-xs text-blue-700 dark:text-blue-300">
+																{holding.breakdown.operation} • {holding.breakdown.broker} • {new Date(holding.breakdown.timestamp).toLocaleDateString()}
 															</div>
 														</div>
 													</div>
