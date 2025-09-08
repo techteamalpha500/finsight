@@ -54,7 +54,8 @@ export interface HoldingData {
   symbol?: string;
   isin?: string;
   units?: number;
-  price?: number;
+  price?: number;  // Average price
+  currentPrice?: number;  // Current market price
   investedAmount?: number;
   currentValue?: number;
   asset_class?: string;

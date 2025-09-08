@@ -202,7 +202,8 @@ def _store_holding_unified(user_id, holding_data, source="ui"):
                 'isin': isin,
                 'sector': holding_data.get('sector', ''),
                 'units': holding_data.get('units', 0),
-                'price': holding_data.get('price', 0),
+                'price': holding_data.get('price', 0),  # Average price
+                'currentPrice': holding_data.get('currentPrice', holding_data.get('price', 0)),  # Current market price
                 'investedAmount': holding_data.get('investedAmount', 0),
                 'currentValue': holding_data.get('currentValue', 0),
                 'asset_class': holding_data.get('asset_class', 'Stocks'),

@@ -714,7 +714,8 @@ class CASParser:
                         'isin': isin,  # Add ISIN for matching
                         'sector': sector,  # Add sector for reference
                         'units': quantity,
-                        'price': current_price,
+                        'price': avg_price,  # Store average price for Avg Price column
+                        'currentPrice': current_price,  # Store current price separately
                         'currentValue': current_value,
                         'investedAmount': invested_value
                     }

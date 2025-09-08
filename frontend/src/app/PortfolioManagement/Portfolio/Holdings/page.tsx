@@ -69,7 +69,9 @@ function mapInstrumentTypeToAssetClass(instrumentType: string): AssetClass {
 // Utility functions
 function computeHoldingValue(holding: HoldingData): number {
 	if (holding.currentValue !== undefined) return holding.currentValue;
-	if (holding.units && holding.price) return holding.units * holding.price;
+	// Use currentPrice if available (for imported stocks), otherwise use price
+	const priceToUse = (holding as any).currentPrice || holding.price;
+	if (holding.units && priceToUse) return holding.units * priceToUse;
 	if (holding.investedAmount) return holding.investedAmount;
 	return 0;
 }
@@ -251,7 +253,8 @@ export default function HoldingsPage() {
 				name: dbHolding.name,
 				symbol: dbHolding.symbol,
 				units: dbHolding.units,
-				price: dbHolding.price,
+				price: dbHolding.price,  // Average price
+				currentPrice: (dbHolding as any).currentPrice,  // Current market price
 				investedAmount: dbHolding.investedAmount,
 				currentValue: dbHolding.currentValue,
 				asset_class: dbHolding.asset_class,
@@ -1038,51 +1041,59 @@ export default function HoldingsPage() {
 			{/* KPI Row */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 				<PlanCard>
-					<PlanCardContent className="p-3 text-center">
-						<div className="flex items-center justify-center mb-2">
-							<DollarSign size={20} className="text-blue-600" />
+					<PlanCardContent className="p-3">
+						<div className="flex items-center gap-3">
+							<DollarSign size={20} className="text-blue-600 flex-shrink-0" />
+							<div className="flex-1 text-center">
+								<div className="text-xs text-muted-foreground mb-1">Total Value</div>
+								<div className="text-lg font-semibold text-foreground mb-1">₹{Math.round(totalValue).toLocaleString()}</div>
+								<div className="text-[10px] text-muted-foreground">Portfolio Worth</div>
+							</div>
 						</div>
-						<div className="text-xs text-muted-foreground mb-1">Total Value</div>
-						<div className="text-lg font-semibold text-foreground mb-1">₹{Math.round(totalValue).toLocaleString()}</div>
-						<div className="text-[10px] text-muted-foreground">Portfolio Worth</div>
 					</PlanCardContent>
 				</PlanCard>
 				<PlanCard>
-					<PlanCardContent className="p-3 text-center">
-						<div className="flex items-center justify-center mb-2">
-							<TrendingUp size={20} className="text-green-600" />
+					<PlanCardContent className="p-3">
+						<div className="flex items-center gap-3">
+							<TrendingUp size={20} className="text-green-600 flex-shrink-0" />
+							<div className="flex-1 text-center">
+								<div className="text-xs text-muted-foreground mb-1">Invested</div>
+								<div className="text-lg font-semibold text-foreground mb-1">₹{Math.round(totalInvested).toLocaleString()}</div>
+								<div className="text-[10px] text-muted-foreground">Capital Deployed</div>
+							</div>
 						</div>
-						<div className="text-xs text-muted-foreground mb-1">Invested</div>
-						<div className="text-lg font-semibold text-foreground mb-1">₹{Math.round(totalInvested).toLocaleString()}</div>
-						<div className="text-[10px] text-muted-foreground">Capital Deployed</div>
 					</PlanCardContent>
 				</PlanCard>
 				<PlanCard>
-					<PlanCardContent className="p-3 text-center">
-						<div className="flex items-center justify-center mb-2">
+					<PlanCardContent className="p-3">
+						<div className="flex items-center gap-3">
 							{totalPL >= 0 ? (
-								<TrendingUpIcon size={20} className="text-emerald-600" />
+								<TrendingUpIcon size={20} className="text-emerald-600 flex-shrink-0" />
 							) : (
-								<TrendingDown size={20} className="text-rose-600" />
+								<TrendingDown size={20} className="text-rose-600 flex-shrink-0" />
 							)}
+							<div className="flex-1 text-center">
+								<div className="text-xs text-muted-foreground mb-1">P/L</div>
+								<div className={`text-lg font-semibold mb-1 ${totalPL >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+									₹{Math.round(totalPL).toLocaleString()}
+								</div>
+								<div className="text-[10px] text-muted-foreground">Profit/Loss</div>
+							</div>
 						</div>
-						<div className="text-xs text-muted-foreground mb-1">P/L</div>
-						<div className={`text-lg font-semibold mb-1 ${totalPL >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-							₹{Math.round(totalPL).toLocaleString()}
-						</div>
-						<div className="text-[10px] text-muted-foreground">Profit/Loss</div>
 					</PlanCardContent>
 				</PlanCard>
 				<PlanCard>
-					<PlanCardContent className="p-3 text-center">
-						<div className="flex items-center justify-center mb-2">
-							<Percent size={20} className={totalPLPct >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
+					<PlanCardContent className="p-3">
+						<div className="flex items-center gap-3">
+							<Percent size={20} className={`${totalPLPct >= 0 ? 'text-emerald-600' : 'text-rose-600'} flex-shrink-0`} />
+							<div className="flex-1 text-center">
+								<div className="text-xs text-muted-foreground mb-1">P/L %</div>
+								<div className={`text-lg font-semibold mb-1 ${totalPLPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+									{totalPLPct >= 0 ? `${totalPLPct.toFixed(2)}%` : "—"}
+								</div>
+								<div className="text-[10px] text-muted-foreground">Return %</div>
+							</div>
 						</div>
-						<div className="text-xs text-muted-foreground mb-1">P/L %</div>
-						<div className={`text-lg font-semibold mb-1 ${totalPLPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-							{totalPLPct >= 0 ? `${totalPLPct.toFixed(2)}%` : "—"}
-						</div>
-						<div className="text-[10px] text-muted-foreground">Return %</div>
 					</PlanCardContent>
 				</PlanCard>
 			</div>
@@ -1099,39 +1110,24 @@ export default function HoldingsPage() {
 							</PlanCardTitle>
 						</PlanCardHeader>
 						<PlanCardContent className="p-4">
-						{/* Modern Filter Buttons */}
+						{/* Modern Filter Section */}
 						<div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-							{/* Asset Class Filter */}
+							{/* Asset Class Filter - Compact Dropdown */}
 							<div className="flex items-center gap-2">
 								<span className="text-xs font-medium text-muted-foreground">Asset Class:</span>
-								<div className="flex items-center gap-1">
-									<button
-										onClick={() => setFilterAssetClass(null)}
-										className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-											!filterAssetClass 
-												? 'bg-primary text-primary-foreground' 
-												: 'bg-muted text-muted-foreground hover:bg-muted/80'
-										}`}
-									>
-										All
-									</button>
+								<select
+									value={filterAssetClass || ''}
+									onChange={(e) => setFilterAssetClass(e.target.value || null)}
+									className="px-3 py-1.5 text-xs border border-border rounded-lg bg-background hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+								>
+									<option value="">All Classes</option>
 									{uniqueAssetClasses.map(assetClass => (
-										<button
-											key={assetClass}
-											onClick={() => setFilterAssetClass(assetClass)}
-											className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-												filterAssetClass === assetClass 
-													? 'bg-primary text-primary-foreground' 
-													: 'bg-muted text-muted-foreground hover:bg-muted/80'
-											}`}
-										>
-											{assetClass}
-										</button>
+										<option key={assetClass} value={assetClass}>{assetClass}</option>
 									))}
-								</div>
+								</select>
 							</div>
 							
-							{/* Portfolio Role Filter */}
+							{/* Portfolio Role Filter - Button Style */}
 							<div className="flex items-center gap-2">
 								<span className="text-xs font-medium text-muted-foreground">Portfolio Role:</span>
 								<div className="flex items-center gap-1">
