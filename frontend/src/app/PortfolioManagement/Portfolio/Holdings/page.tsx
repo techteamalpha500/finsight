@@ -118,6 +118,9 @@ export default function HoldingsPage() {
 	// Breakdown state - store breakdown data per holding
 	const [holdingsWithBreakdown, setHoldingsWithBreakdown] = useState<Set<string>>(new Set());
 	
+	// Tab state
+	const [activeTab, setActiveTab] = useState<'data' | 'insights'>('data');
+	
 	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
@@ -1008,6 +1011,30 @@ export default function HoldingsPage() {
 				</div>
 			</div>
 			
+			{/* Tab Navigation */}
+			<div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg w-fit">
+				<button
+					onClick={() => setActiveTab('data')}
+					className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+						activeTab === 'data' 
+							? 'bg-background text-foreground shadow-sm' 
+							: 'text-muted-foreground hover:text-foreground'
+					}`}
+				>
+					Data
+				</button>
+				<button
+					onClick={() => setActiveTab('insights')}
+					className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+						activeTab === 'insights' 
+							? 'bg-background text-foreground shadow-sm' 
+							: 'text-muted-foreground hover:text-foreground'
+					}`}
+				>
+					Insights
+				</button>
+			</div>
+			
 			{/* KPI Row */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 				<PlanCard>
@@ -1044,10 +1071,10 @@ export default function HoldingsPage() {
 				</PlanCard>
 			</div>
 
-			{/* Holdings Table and Charts - Side by Side */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-				{/* Holdings Table - Takes 2 columns */}
-				<div className="lg:col-span-2">
+			{/* Tab Content */}
+			{activeTab === 'data' ? (
+				/* Data Tab - Holdings Table */
+				<div className="mb-6">
 					<PlanCard>
 						<PlanCardHeader className="px-4 py-3 border-b border-border">
 							<PlanCardTitle className="text-sm font-medium flex items-center gap-2">
@@ -1341,9 +1368,9 @@ export default function HoldingsPage() {
 					</PlanCardContent>
 				</PlanCard>
 				</div>
-
-				{/* Charts Section - Right Side */}
-				<div className="lg:col-span-1 space-y-6">
+			) : (
+				/* Insights Tab - Charts */
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 					{/* Asset Class Chart */}
 					<PlanCard>
 						<PlanCardHeader className="px-4 py-3 border-b border-border">
@@ -1484,7 +1511,7 @@ export default function HoldingsPage() {
 						</PlanCardContent>
 					</PlanCard>
 				</div>
-			</div>
+			)}
 
 			{/* Add/Edit Modal */}
 			{isModalOpen && (
