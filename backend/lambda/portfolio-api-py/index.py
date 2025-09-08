@@ -102,10 +102,26 @@ def _is_symbol_company_match(symbol, company_name):
         print(f"Error in symbol-company matching: {e}")
         return False
 
-def _find_existing_holding(user_id, stock):
-    """Find existing holding using multiple matching strategies"""
+def _is_broker_compatible(existing_broker, import_broker):
+    """Check if brokers are compatible for merging"""
+    if not import_broker:
+        return True  # If no import broker specified, allow merging
+    
+    # Manual entries can always be overridden by broker imports
+    if existing_broker == 'manual':
+        return True
+    
+    # Same broker can be merged
+    if existing_broker == import_broker:
+        return True
+    
+    # Different brokers should not be merged
+    return False
+
+def _find_existing_holding(user_id, stock, import_broker=None):
+    """Find existing holding using multiple matching strategies with broker consideration"""
     try:
-        print(f"🔍 _find_existing_holding called for: {stock.get('name', 'Unknown')} (ISIN: {stock.get('isin', 'None')})")
+        print(f"🔍 _find_existing_holding called for: {stock.get('name', 'Unknown')} (ISIN: {stock.get('isin', 'None')}, Import Broker: {import_broker})")
         
         # Strategy 1: Match by ISIN if available
         if 'isin' in stock and stock['isin']:
@@ -126,8 +142,13 @@ def _find_existing_holding(user_id, stock):
             isin_matches = [h for h in items if h.get('data', {}).get('isin') == stock['isin']]
             print(f"🔍 Exact ISIN matches: {len(isin_matches)}")
             if isin_matches:
-                print(f"✅ ISIN match found: {isin_matches[0].get('data', {}).get('name', 'Unknown')}")
-                return isin_matches[0]
+                # Check broker compatibility
+                existing_broker = isin_matches[0].get('data', {}).get('broker', 'manual')
+                if _is_broker_compatible(existing_broker, import_broker):
+                    print(f"✅ ISIN match found: {isin_matches[0].get('data', {}).get('name', 'Unknown')} (Broker: {existing_broker})")
+                    return isin_matches[0]
+                else:
+                    print(f"⚠️ ISIN match found but broker incompatible: {existing_broker} vs {import_broker}")
         
         # Strategy 2: Match by symbol (exact match)
         print(f"🔍 Strategy 2: Trying symbol match for {stock.get('symbol', 'None')}")
@@ -237,6 +258,52 @@ def _convert_floats_to_decimals(obj):
     else:
         return obj
 
+def _store_holding_unified(user_id, holding_data, source="ui"):
+    """Unified function to store holdings data consistently from UI or import"""
+    try:
+        holding_id = holding_data.get('id', str(uuid.uuid4()))
+        now = datetime.utcnow().isoformat()
+        
+        # Ensure broker field exists
+        broker = holding_data.get('broker', 'manual')
+        
+        # Create standardized holding structure
+        holding_item = {
+            'id': holding_id,
+            'user_id': user_id,
+            'portfolio_id': user_id,  # Using user_id as portfolio_id for consistency
+            'symbol': holding_data.get('symbol', ''),
+            'data': _convert_floats_to_decimals({
+                'id': holding_id,
+                'instrumentClass': holding_data.get('instrumentClass', 'Stocks'),
+                'name': holding_data.get('name', ''),
+                'symbol': holding_data.get('symbol', ''),
+                'isin': holding_data.get('isin', ''),
+                'sector': holding_data.get('sector', ''),
+                'units': holding_data.get('units', 0),
+                'price': holding_data.get('price', 0),
+                'investedAmount': holding_data.get('investedAmount', 0),
+                'currentValue': holding_data.get('currentValue', 0),
+                'asset_class': holding_data.get('asset_class', 'Stocks'),
+                'portfolio_role': holding_data.get('portfolio_role', 'Equity'),
+                'broker': broker,
+                'source': source,
+                'created_at': holding_data.get('created_at', now),
+                'updated_at': now
+            }),
+            'asset_class': holding_data.get('asset_class', 'Stocks'),
+            'portfolio_role': holding_data.get('portfolio_role', 'Equity'),
+            'created_at': holding_data.get('created_at', now),
+            'updated_at': now
+        }
+        
+        holdings_table.put_item(Item=holding_item)
+        print(f"✅ Stored holding: {holding_data.get('name', 'Unknown')} (Broker: {broker}, Source: {source})")
+        return holding_item
+        
+    except Exception as e:
+        print(f"❌ Error storing holding: {e}")
+        raise e
 
 def _get_asset_class_mapping():
     """Get asset class to portfolio role mapping from DynamoDB"""
@@ -931,7 +998,7 @@ def handler(event, context):
                         
                         # Find existing holding using comprehensive matching
                         print(f"🔍 Looking for existing holding for stock: {stock.get('name', 'Unknown')} (Symbol: {stock.get('symbol', 'Unknown')}, ISIN: {stock.get('isin', 'None')})")
-                        existing_holding = _find_existing_holding(user_id, stock)
+                        existing_holding = _find_existing_holding(user_id, stock, broker.lower())
                         
                         if existing_holding:
                             print(f"✅ Found existing holding: {existing_holding.get('data', {}).get('name', 'Unknown')} (ID: {existing_holding.get('id', 'Unknown')})")
@@ -1000,10 +1067,7 @@ def handler(event, context):
                             )
                             updated_count += 1
                         else:
-                            # Add new holding to holdings table
-                            holding_id = str(uuid.uuid4())
-                            now = datetime.utcnow().isoformat()
-                            
+                            # Add new holding using unified function
                             # Get standardized company name if ISIN is available
                             standardized_name = None
                             if 'isin' in stock and stock['isin']:
@@ -1012,38 +1076,24 @@ def handler(event, context):
                             # Use standardized name if available, otherwise use broker name
                             display_name = standardized_name if standardized_name else stock['name']
                             
-                            # Create holding data object
+                            # Create holding data object for unified function
                             holding_data = {
-                                'id': holding_id,
                                 'instrumentClass': 'Stocks',
                                 'name': display_name,  # Use standardized name
                                 'symbol': stock['symbol'],
                                 'isin': stock.get('isin', ''),  # Add ISIN if available
                                 'sector': stock.get('sector', ''),  # Add sector if available
-                                'units': Decimal(str(stock['units'])),
-                                'price': Decimal(str(stock['price'])),
-                                'investedAmount': Decimal(str(stock['investedAmount'])),
-                                'currentValue': Decimal(str(stock['currentValue'])),
+                                'units': stock['units'],
+                                'price': stock['price'],
+                                'investedAmount': stock['investedAmount'],
+                                'currentValue': stock['currentValue'],
                                 'asset_class': 'Stocks',
                                 'portfolio_role': 'Equity',
-                                'created_at': now,
-                                'updated_at': now
+                                'broker': broker.lower()  # Use broker from import
                             }
                             
-                            # Create new holding item in holdings table structure
-                            new_holding = {
-                                'id': holding_id,
-                                'user_id': user_id,
-                                'portfolio_id': user_id,  # Using user_id as portfolio_id for consistency
-                                'symbol': stock['symbol'],  # Top-level symbol for GSI
-                                'data': holding_data,
-                                'asset_class': 'Stocks',
-                                'portfolio_role': 'Equity',
-                                'created_at': now,
-                                'updated_at': now
-                            }
-                            
-                            holdings_table.put_item(Item=new_holding)
+                            # Use unified function to store
+                            _store_holding_unified(user_id, holding_data, source="import")
                             imported_count += 1
                             
                     except Exception as stock_error:

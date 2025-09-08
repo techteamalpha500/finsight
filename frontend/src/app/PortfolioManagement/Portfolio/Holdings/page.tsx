@@ -145,7 +145,8 @@ export default function HoldingsPage() {
 		price: "",
 		investedAmount: "",
 		currentValue: "",
-		propertyType: ""
+		propertyType: "",
+		broker: "manual" // Default to manual entry
 	});
 	
 
@@ -580,13 +581,14 @@ export default function HoldingsPage() {
 				price: originalForm.price?.toString() || "",
 				investedAmount: originalForm.investedAmount?.toString() || "",
 				currentValue: originalForm.currentValue?.toString() || "",
-				propertyType: (originalForm as any).propertyType || ""
+				propertyType: (originalForm as any).propertyType || "",
+				broker: (originalForm as any).broker || "manual"
 			};
 			setForm(formData);
 			setMfSearchTerm(originalForm.name);
 		} else {
 			// If adding new, reset to empty form
-			setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "" });
+			setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "", broker: "manual" });
 			// Reset stock functionality
 			setStockSearchTerm("");
 			setSelectedStock(null);
@@ -683,6 +685,7 @@ export default function HoldingsPage() {
 			currentValue: form.currentValue ? parseFloat(form.currentValue) : undefined,
 			asset_class: assetClass,
 			portfolio_role: portfolioRole,
+			broker: form.broker,
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString()
 		};
@@ -1410,6 +1413,21 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
+												<div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="manual">Manual Entry</option>
+														<option value="zerodha">Zerodha</option>
+														<option value="groww">Groww</option>
+														<option value="upstox">Upstox</option>
+														<option value="angel">Angel</option>
+														<option value="other">Other</option>
+													</select>
+												</div>
 
 											</>
 										)}
@@ -1501,6 +1519,21 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
+												<div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="manual">Manual Entry</option>
+														<option value="zerodha">Zerodha</option>
+														<option value="groww">Groww</option>
+														<option value="upstox">Upstox</option>
+														<option value="angel">Angel</option>
+														<option value="other">Other</option>
+													</select>
+												</div>
 
 											</>
 										)}
@@ -1592,6 +1625,21 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
+												<div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="manual">Manual Entry</option>
+														<option value="zerodha">Zerodha</option>
+														<option value="groww">Groww</option>
+														<option value="upstox">Upstox</option>
+														<option value="angel">Angel</option>
+														<option value="other">Other</option>
+													</select>
+												</div>
 
 											</>
 										)}
