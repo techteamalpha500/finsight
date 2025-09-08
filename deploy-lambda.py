@@ -10,6 +10,7 @@ import subprocess
 import json
 import shutil
 import zipfile
+import argparse
 from pathlib import Path
 
 def run_command(cmd, check=True, capture_output=False):
@@ -602,72 +603,367 @@ def show_deployment_outputs():
     print("   echo '{\"type\":\"stocks\"}' > payload.json")
     print("   aws lambda invoke --function-name parse-mf-stocks --payload file://payload.json response.json")
 
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description="Deploy Lambda functions and infrastructure",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  ./deploy-lambda.py                    # Deploy all functions
+  ./deploy-lambda.py 1                  # Deploy only import-stocks
+  ./deploy-lambda.py 2                  # Deploy only portfolio-api
+  ./deploy-lambda.py 3                  # Deploy only parse-mf-stocks
+  ./deploy-lambda.py 4                  # Deploy only expenses-api
+  ./deploy-lambda.py --help             # Show this help message
+
+Function mapping:
+  1 = import-stocks (CAS parsing, Excel support)
+  2 = portfolio-api (holdings, portfolio management)
+  3 = parse-mf-stocks (mutual fund data parsing)
+  4 = expenses-api (expense tracking)
+        """
+    )
+    
+    parser.add_argument(
+        'function', 
+        nargs='?', 
+        type=int, 
+        choices=[1, 2, 3, 4],
+        help='Deploy specific function (1-4) or all if not specified'
+    )
+    
+    return parser.parse_args()
+
+def get_function_info(function_num):
+    """Get function information based on number"""
+    functions = {
+        1: {
+            "name": "import-stocks",
+            "description": "Import Stocks Lambda (CAS parsing, Excel support)",
+            "terraform_target": "aws_lambda_function.import_stocks",
+            "build_function": "build_import_stocks_package"
+        },
+        2: {
+            "name": "portfolio-api", 
+            "description": "Portfolio API Lambda (holdings, portfolio management)",
+            "terraform_target": "aws_lambda_function.portfolio_api",
+            "build_function": "build_portfolio_api_package"
+        },
+        3: {
+            "name": "parse-mf-stocks",
+            "description": "Parse MF/Stocks Lambda (mutual fund data parsing)", 
+            "terraform_target": "aws_lambda_function.parse_mf_stocks",
+            "build_function": "build_parse_mf_stocks_package"
+        },
+        4: {
+            "name": "expenses-api",
+            "description": "Expenses API Lambda (expense tracking)",
+            "terraform_target": "aws_lambda_function.expenses_api", 
+            "build_function": "build_expenses_api_package"
+        }
+    }
+    return functions.get(function_num)
+
+def build_specific_function(function_num):
+    """Build package for a specific function"""
+    func_info = get_function_info(function_num)
+    if not func_info:
+        print(f"❌ Invalid function number: {function_num}")
+        return False
+    
+    # Define function-specific build logic
+    if function_num == 2:  # portfolio-api
+        return build_portfolio_api_package()
+    elif function_num == 3:  # parse-mf-stocks
+        return build_parse_mf_stocks_package()
+    elif function_num == 4:  # expenses-api
+        return build_expenses_api_package()
+    else:
+        print(f"❌ Function {function_num} not supported for individual build")
+        return False
+
+def build_portfolio_api_package():
+    """Build portfolio-api Lambda package"""
+    print("🔧 Building portfolio-api Lambda package...")
+    
+    lambda_src = Path("backend/lambda/portfolio-api-py")
+    build_dir = Path("terraform/portfolio_api_build")
+    zip_file = Path("terraform/portfolio_api.zip")
+    
+    if not lambda_src.exists():
+        print(f"❌ Lambda source directory not found: {lambda_src}")
+        return False
+    
+    # Clean up previous build
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+    if zip_file.exists():
+        zip_file.unlink()
+    
+    # Create build directory and copy source
+    build_dir.mkdir(parents=True, exist_ok=True)
+    for item in lambda_src.iterdir():
+        if item.is_file():
+            shutil.copy2(item, build_dir)
+        elif item.is_dir():
+            shutil.copytree(item, build_dir / item.name)
+    
+    # Install dependencies
+    requirements_file = build_dir / "requirements.txt"
+    if requirements_file.exists():
+        run_command(["pip3", "install", "-r", str(requirements_file), "-t", str(build_dir), "--upgrade"])
+    
+    # Create ZIP
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(build_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(build_dir)
+                zipf.write(file_path, arcname)
+    
+    print(f"✅ portfolio-api package built: {zip_file}")
+    return True
+
+def build_parse_mf_stocks_package():
+    """Build parse-mf-stocks Lambda package"""
+    print("🔧 Building parse-mf-stocks Lambda package...")
+    
+    lambda_src = Path("backend/lambda/parse-mf-stocks")
+    build_dir = Path("terraform/parse_mf_stocks_build")
+    zip_file = Path("terraform/parse_mf_stocks.zip")
+    
+    if not lambda_src.exists():
+        print(f"❌ Lambda source directory not found: {lambda_src}")
+        return False
+    
+    # Clean up previous build
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+    if zip_file.exists():
+        zip_file.unlink()
+    
+    # Create build directory and copy source
+    build_dir.mkdir(parents=True, exist_ok=True)
+    for item in lambda_src.iterdir():
+        if item.is_file():
+            shutil.copy2(item, build_dir)
+        elif item.is_dir():
+            shutil.copytree(item, build_dir / item.name)
+    
+    # Install dependencies
+    requirements_file = build_dir / "requirements.txt"
+    if requirements_file.exists():
+        run_command(["pip3", "install", "-r", str(requirements_file), "-t", str(build_dir), "--upgrade"])
+    
+    # Create ZIP
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(build_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(build_dir)
+                zipf.write(file_path, arcname)
+    
+    print(f"✅ parse-mf-stocks package built: {zip_file}")
+    return True
+
+def build_expenses_api_package():
+    """Build expenses-api Lambda package"""
+    print("🔧 Building expenses-api Lambda package...")
+    
+    lambda_src = Path("backend/lambda/expenses-api-py")
+    build_dir = Path("terraform/expenses_api_build")
+    zip_file = Path("terraform/expenses_api.zip")
+    
+    if not lambda_src.exists():
+        print(f"❌ Lambda source directory not found: {lambda_src}")
+        return False
+    
+    # Clean up previous build
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+    if zip_file.exists():
+        zip_file.unlink()
+    
+    # Create build directory and copy source
+    build_dir.mkdir(parents=True, exist_ok=True)
+    for item in lambda_src.iterdir():
+        if item.is_file():
+            shutil.copy2(item, build_dir)
+        elif item.is_dir():
+            shutil.copytree(item, build_dir / item.name)
+    
+    # Install dependencies
+    requirements_file = build_dir / "requirements.txt"
+    if requirements_file.exists():
+        run_command(["pip3", "install", "-r", str(requirements_file), "-t", str(build_dir), "--upgrade"])
+    
+    # Create ZIP
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(build_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(build_dir)
+                zipf.write(file_path, arcname)
+    
+    print(f"✅ expenses-api package built: {zip_file}")
+    return True
+
+def deploy_specific_function(function_num):
+    """Deploy a specific function using Terraform"""
+    func_info = get_function_info(function_num)
+    if not func_info:
+        print(f"❌ Invalid function number: {function_num}")
+        return False
+    
+    print(f"🚀 Deploying {func_info['name']} with Terraform...")
+    
+    # Initialize Terraform
+    run_command(["terraform", "init"])
+    
+    # Plan deployment
+    run_command(["terraform", "plan", f"-target={func_info['terraform_target']}"])
+    
+    # Apply deployment
+    run_command(["terraform", "apply", f"-target={func_info['terraform_target']}", "-auto-approve"])
+    
+    print(f"✅ {func_info['name']} deployed successfully!")
+    return True
+
 def main():
     """Main deployment function"""
-    print("🚀 Starting Unified Terraform Deployment...")
-    print("=" * 60)
-    print("This will deploy all Lambda functions and infrastructure:")
-    print("  📊 Parse MF/Stocks Lambda (parse-mf-stocks)")
-    print("  💼 Portfolio API Lambda (portfolio-api)")
-    print("  💰 Expenses API Lambda (expenses-api)")
-    print("  📊 Import Stocks Lambda (import-stocks) - WITH OPENPYXL SUPPORT")
-    print("  📊 All DynamoDB Tables")
-    print("  🌐 API Gateway Routes")
-    print("=" * 60)
-    print("🔍 DEPENDENCY VERIFICATION:")
-    print("  ✅ All critical dependencies will be verified")
-    print("  ✅ openpyxl will be tested for Excel support")
-    print("  ✅ ZIP packages will be validated")
-    print("  ✅ Deployment will fail if dependencies are missing")
-    print("=" * 60)
-    print("📝 IMPORTANT: If import-stocks Lambda fails to deploy with dependencies:")
-    print("  1. Use the pre-built package: import_stocks_fixed.zip")
-    print("  2. Upload manually via AWS Console or CLI")
-    print("  3. Package includes all dependencies (36MB)")
-    print("=" * 60)
+    args = parse_arguments()
+    
+    if args.function:
+        # Deploy specific function
+        func_info = get_function_info(args.function)
+        if not func_info:
+            print(f"❌ Invalid function number: {args.function}")
+            print("Valid options: 1, 2, 3, 4")
+            sys.exit(1)
+            
+        print(f"🚀 Starting {func_info['description']} Deployment...")
+        print("=" * 60)
+        print(f"This will deploy only: {func_info['name']}")
+        print("=" * 60)
+    else:
+        # Deploy all functions
+        print("🚀 Starting Unified Terraform Deployment...")
+        print("=" * 60)
+        print("This will deploy all Lambda functions and infrastructure:")
+        print("  📊 Parse MF/Stocks Lambda (parse-mf-stocks)")
+        print("  💼 Portfolio API Lambda (portfolio-api)")
+        print("  💰 Expenses API Lambda (expenses-api)")
+        print("  📊 Import Stocks Lambda (import-stocks) - WITH OPENPYXL SUPPORT")
+        print("  📊 All DynamoDB Tables")
+        print("  🌐 API Gateway Routes")
+        print("=" * 60)
+        print("🔍 DEPENDENCY VERIFICATION:")
+        print("  ✅ All critical dependencies will be verified")
+        print("  ✅ openpyxl will be tested for Excel support")
+        print("  ✅ ZIP packages will be validated")
+        print("  ✅ Deployment will fail if dependencies are missing")
+        print("=" * 60)
+        print("📝 IMPORTANT: If import-stocks Lambda fails to deploy with dependencies:")
+        print("  1. Use the pre-built package: import_stocks_fixed.zip")
+        print("  2. Upload manually via AWS Console or CLI")
+        print("  3. Package includes all dependencies (36MB)")
+        print("=" * 60)
     
     # Check prerequisites
     check_prerequisites()
     
-    # Create pre-built package automatically
-    print("\n🔧 Creating pre-built import-stocks package...")
-    if create_prebuilt_package():
-        print("✅ Pre-built package created: import_stocks_fixed.zip")
-        print("📝 You can upload this manually if Terraform deployment fails")
+    if args.function:
+        # Deploy specific function
+        func_info = get_function_info(args.function)
+        
+        if args.function == 1:
+            # Import-stocks needs special handling
+            print("\n🔧 Creating pre-built import-stocks package...")
+            if create_prebuilt_package():
+                print("✅ Pre-built package created: import_stocks_fixed.zip")
+                print("📝 You can upload this manually if Terraform deployment fails")
+            else:
+                print("❌ Failed to create pre-built package")
+            
+            print("\n" + "="*60)
+            print("🔧 BUILDING IMPORT-STOCKS PACKAGE (ALWAYS REBUILD)")
+            print("="*60)
+            if not build_import_stocks_package():
+                print("❌ Failed to build import-stocks package. Deployment aborted.")
+                return
+        else:
+            # Build specific function package
+            print(f"\n" + "="*60)
+            print(f"🔧 BUILDING {func_info['name'].upper()} PACKAGE")
+            print("="*60)
+            if not build_specific_function(args.function):
+                print(f"❌ Failed to build {func_info['name']} package. Deployment aborted.")
+                return
+        
+        # Deploy specific function with Terraform
+        success = deploy_specific_function(args.function)
     else:
-        print("❌ Failed to create pre-built package")
-    
-    # Build import-stocks package first (always rebuild)
-    print("\n" + "="*60)
-    print("🔧 BUILDING IMPORT-STOCKS PACKAGE (ALWAYS REBUILD)")
-    print("="*60)
-    if not build_import_stocks_package():
-        print("❌ Failed to build import-stocks package. Deployment aborted.")
-        return
-    
-    # Build other Lambda packages
-    print("\n" + "="*60)
-    print("🔧 BUILDING OTHER LAMBDA PACKAGES")
-    print("="*60)
-    build_lambda_packages()
-    
-    # Deploy with Terraform
-    success = deploy_terraform()
+        # Deploy all functions (original logic)
+        # Create pre-built package automatically
+        print("\n🔧 Creating pre-built import-stocks package...")
+        if create_prebuilt_package():
+            print("✅ Pre-built package created: import_stocks_fixed.zip")
+            print("📝 You can upload this manually if Terraform deployment fails")
+        else:
+            print("❌ Failed to create pre-built package")
+        
+        # Build import-stocks package first (always rebuild)
+        print("\n" + "="*60)
+        print("🔧 BUILDING IMPORT-STOCKS PACKAGE (ALWAYS REBUILD)")
+        print("="*60)
+        if not build_import_stocks_package():
+            print("❌ Failed to build import-stocks package. Deployment aborted.")
+            return
+        
+        # Build other Lambda packages
+        print("\n" + "="*60)
+        print("🔧 BUILDING OTHER LAMBDA PACKAGES")
+        print("="*60)
+        build_lambda_packages()
+        
+        # Deploy with Terraform
+        success = deploy_terraform()
     
     if success:
-        print("\n🎉 Deployment completed successfully!")
-        print("\n🔍 FINAL VERIFICATION:")
-        print("✅ All Lambda functions deployed with verified dependencies")
-        print("✅ openpyxl is included and tested in import-stocks Lambda")
-        print("✅ Excel parsing support is fully functional")
-        print("✅ Zerodha import should now work without errors")
-        print("\n📝 Next steps:")
-        print("1. Test Zerodha Excel import in the frontend")
-        print("2. Verify holdings are imported correctly")
-        print("3. Check CloudWatch logs if any issues occur")
-        print("4. Test other broker imports (Groww, Upstox, Angel)")
-        print("5. Verify API Gateway endpoints are working")
-        print("\n🚀 Your Zerodha import functionality is now ready!")
+        if args.function:
+            func_info = get_function_info(args.function)
+            print(f"\n🎉 {func_info['description']} deployment completed successfully!")
+            print(f"\n🔍 FINAL VERIFICATION:")
+            print(f"✅ {func_info['name']} Lambda deployed successfully")
+            if args.function == 1:
+                print("✅ openpyxl is included and tested in import-stocks Lambda")
+                print("✅ Excel parsing support is fully functional")
+                print("✅ Zerodha import should now work without errors")
+                print("\n📝 Next steps:")
+                print("1. Test Zerodha Excel import in the frontend")
+                print("2. Verify holdings are imported correctly")
+                print("3. Check CloudWatch logs if any issues occur")
+                print("4. Test other broker imports (Groww, Upstox, Angel)")
+            else:
+                print(f"\n📝 Next steps:")
+                print(f"1. Test {func_info['name']} functionality")
+                print("2. Check CloudWatch logs if any issues occur")
+                print("3. Verify API Gateway endpoints are working")
+        else:
+            print("\n🎉 Deployment completed successfully!")
+            print("\n🔍 FINAL VERIFICATION:")
+            print("✅ All Lambda functions deployed with verified dependencies")
+            print("✅ openpyxl is included and tested in import-stocks Lambda")
+            print("✅ Excel parsing support is fully functional")
+            print("✅ Zerodha import should now work without errors")
+            print("\n📝 Next steps:")
+            print("1. Test Zerodha Excel import in the frontend")
+            print("2. Verify holdings are imported correctly")
+            print("3. Check CloudWatch logs if any issues occur")
+            print("4. Test other broker imports (Groww, Upstox, Angel)")
+            print("5. Verify API Gateway endpoints are working")
+            print("\n🚀 Your Zerodha import functionality is now ready!")
     else:
         print("\n❌ Deployment failed or was cancelled")
         print("🔍 Check the error messages above for details")
