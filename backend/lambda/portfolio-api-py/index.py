@@ -107,15 +107,15 @@ def _is_broker_compatible(existing_broker, import_broker):
     if not import_broker:
         return True  # If no import broker specified, allow merging
     
-    # Manual entries can always be overridden by broker imports
+    # Manual entries can always be overridden by any broker import
     if existing_broker == 'manual':
         return True
     
-    # Same broker can be merged
+    # Same broker can be merged (e.g., Zerodha UI entry + Zerodha import)
     if existing_broker == import_broker:
         return True
     
-    # Different brokers should not be merged
+    # Different brokers should NOT be merged (e.g., Groww UI entry + Zerodha import)
     return False
 
 def _find_existing_holding(user_id, stock, import_broker=None):
