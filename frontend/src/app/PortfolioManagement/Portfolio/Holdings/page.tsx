@@ -1144,7 +1144,8 @@ export default function HoldingsPage() {
 												const plPercent = investedAmount > 0 ? (pl / investedAmount) * 100 : 0;
 												
 												return (
-													<tr key={holding.id} className="border-t border-border/50">
+													<React.Fragment key={holding.id}>
+														<tr className="border-t border-border/50">
 														<td className="py-2 px-3 font-medium">
 															<div className="text-foreground">{holding.name}</div>
 															{holding.symbol && (
@@ -1244,6 +1245,7 @@ export default function HoldingsPage() {
 															</td>
 														</tr>
 													)}
+													</React.Fragment>
 												);
 											})}
 										</tbody>
