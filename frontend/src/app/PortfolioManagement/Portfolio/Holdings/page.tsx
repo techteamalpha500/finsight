@@ -3,7 +3,7 @@ import React, { useMemo, useState, useRef } from "react";
 
 import type { AssetClass } from "../../domain/allocationEngine";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload, Lock, ExternalLink, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload, Lock, ExternalLink, AlertCircle, Info } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Card as PlanCard, CardContent as PlanCardContent, CardHeader as PlanCardHeader, CardTitle as PlanCardTitle } from "../../../components/Card";
 import { Button } from "../../../components/Button";
@@ -115,9 +115,8 @@ export default function HoldingsPage() {
 	const [importError, setImportError] = useState("");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	
-	// Breakdown state
-	const [breakdownData, setBreakdownData] = useState<any>(null);
-	const [showBreakdown, setShowBreakdown] = useState(false);
+	// Breakdown state - store breakdown data per holding
+	const [holdingsWithBreakdown, setHoldingsWithBreakdown] = useState<Set<string>>(new Set());
 	
 	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1);
@@ -762,15 +761,24 @@ export default function HoldingsPage() {
 			// Save to DynamoDB
 			const response = await saveHolding(holding);
 			
-			// Store breakdown data if available
-			if (response && response.breakdown) {
-				setBreakdownData(response.breakdown);
-			}
-			
 			// Show loading state and refresh holdings from DynamoDB
 			setIsRefreshing(true);
 			await loadHoldingsData();
 			setIsRefreshing(false);
+			
+			// Store breakdown data with the specific holding if available
+			if (response && response.breakdown && response.holdingId) {
+				// Update the holding with breakdown data
+				setHoldings(prevHoldings => 
+					prevHoldings.map(h => 
+						h.id === response.holdingId 
+							? { ...h, breakdown: response.breakdown }
+							: h
+					)
+				);
+				// Mark this holding as having breakdown data
+				setHoldingsWithBreakdown(prev => new Set([...prev, response.holdingId]));
+			}
 			
 			setIsModalOpen(false);
 			clearEditState();
@@ -1020,14 +1028,6 @@ export default function HoldingsPage() {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					<div className="text-sm text-muted-foreground">Holdings</div>
-					{breakdownData && (
-						<button
-							onClick={() => setShowBreakdown(!showBreakdown)}
-							className="text-xs text-blue-600 hover:text-blue-700 underline"
-						>
-							{showBreakdown ? 'Hide' : 'Show'} Breakdown
-						</button>
-					)}
 				</div>
 				<div className="flex items-center gap-2">
 					<Button 
@@ -1178,6 +1178,23 @@ export default function HoldingsPage() {
 																>
 																	<Edit2 size={14} />
 																</button>
+																{holding.breakdown && (
+																	<button 
+																		onClick={() => {
+																			const newSet = new Set(holdingsWithBreakdown);
+																			if (newSet.has(holding.id)) {
+																				newSet.delete(holding.id);
+																			} else {
+																				newSet.add(holding.id);
+																			}
+																			setHoldingsWithBreakdown(newSet);
+																		}}
+																		className="p-1 rounded hover:bg-muted transition-colors text-green-600 hover:text-green-700"
+																		title="Show Breakdown"
+																	>
+																		<Info size={14} />
+																	</button>
+																)}
 																<button 
 																	onClick={() => handleDeleteHolding(holding.id)} 
 																	className="p-1 rounded hover:bg-muted transition-colors text-rose-600 hover:text-rose-700"
@@ -1188,6 +1205,45 @@ export default function HoldingsPage() {
 															</div>
 														</td>
 													</tr>
+													{/* Breakdown Row */}
+													{holding.breakdown && holdingsWithBreakdown.has(holding.id) && (
+														<tr>
+															<td colSpan={7} className="px-3 py-2">
+																<div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+																	<div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+																		📊 {holding.breakdown.operation}
+																	</div>
+																	<div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+																		{holding.breakdown.previous_units !== undefined && (
+																			<div>
+																				<div className="text-muted-foreground">Previous Units</div>
+																				<div className="font-medium">{holding.breakdown.previous_units}</div>
+																			</div>
+																		)}
+																		{holding.breakdown.added_units !== undefined && (
+																			<div>
+																				<div className="text-muted-foreground">Added Units</div>
+																				<div className="font-medium text-green-600">+{holding.breakdown.added_units}</div>
+																			</div>
+																		)}
+																		{holding.breakdown.new_units !== undefined && (
+																			<div>
+																				<div className="text-muted-foreground">New Total</div>
+																				<div className="font-medium">{holding.breakdown.new_units}</div>
+																			</div>
+																		)}
+																		<div>
+																			<div className="text-muted-foreground">Broker</div>
+																			<div className="font-medium">{holding.breakdown.broker}</div>
+																		</div>
+																	</div>
+																	<div className="text-xs text-muted-foreground mt-2">
+																		{new Date(holding.breakdown.timestamp).toLocaleString()}
+																	</div>
+																</div>
+															</td>
+														</tr>
+													)}
 												);
 											})}
 										</tbody>
@@ -1223,6 +1279,23 @@ export default function HoldingsPage() {
 														>
 															<Edit2 size={16} />
 														</button>
+														{holding.breakdown && (
+															<button 
+																onClick={() => {
+																	const newSet = new Set(holdingsWithBreakdown);
+																	if (newSet.has(holding.id)) {
+																		newSet.delete(holding.id);
+																	} else {
+																		newSet.add(holding.id);
+																	}
+																	setHoldingsWithBreakdown(newSet);
+																}}
+																className="p-1.5 rounded-lg hover:bg-muted transition-colors text-green-600 hover:text-green-700"
+																title="Show Breakdown"
+															>
+																<Info size={16} />
+															</button>
+														)}
 														<button 
 															onClick={() => handleDeleteHolding(holding.id)} 
 															className="p-1.5 rounded-lg hover:bg-muted transition-colors text-rose-600 hover:text-rose-700"
@@ -1261,6 +1334,44 @@ export default function HoldingsPage() {
 														</div>
 													</div>
 												</div>
+												
+												{/* Breakdown Display */}
+												{holding.breakdown && holdingsWithBreakdown.has(holding.id) && (
+													<div className="mt-3 pt-3 border-t border-border">
+														<div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+															<div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+																📊 {holding.breakdown.operation}
+															</div>
+															<div className="grid grid-cols-2 gap-3 text-xs">
+																{holding.breakdown.previous_units !== undefined && (
+																	<div>
+																		<div className="text-muted-foreground">Previous Units</div>
+																		<div className="font-medium">{holding.breakdown.previous_units}</div>
+																	</div>
+																)}
+																{holding.breakdown.added_units !== undefined && (
+																	<div>
+																		<div className="text-muted-foreground">Added Units</div>
+																		<div className="font-medium text-green-600">+{holding.breakdown.added_units}</div>
+																	</div>
+																)}
+																{holding.breakdown.new_units !== undefined && (
+																	<div>
+																		<div className="text-muted-foreground">New Total</div>
+																		<div className="font-medium">{holding.breakdown.new_units}</div>
+																	</div>
+																)}
+																<div>
+																	<div className="text-muted-foreground">Broker</div>
+																	<div className="font-medium">{holding.breakdown.broker}</div>
+																</div>
+															</div>
+															<div className="text-xs text-muted-foreground mt-2">
+																{new Date(holding.breakdown.timestamp).toLocaleString()}
+															</div>
+														</div>
+													</div>
+												)}
 											</div>
 										);
 									})}

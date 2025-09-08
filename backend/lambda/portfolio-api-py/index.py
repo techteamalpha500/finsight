@@ -422,7 +422,7 @@ def handler(event, context):
                        "holdingId": existing_holding["id"], 
                        "action": "merged",
                        "breakdown": {
-                           "operation": "UI Entry Merged",
+                           "operation": "Merged with existing",
                            "holding_name": holding.get('name', 'Unknown'),
                            "broker": holding.get('broker', 'Unknown'),
                            "previous_units": current_units,

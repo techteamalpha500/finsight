@@ -62,6 +62,21 @@ export interface HoldingData {
   broker?: string;
   created_at: string;
   updated_at: string;
+  breakdown?: {
+    operation: string;
+    holding_name: string;
+    broker: string;
+    previous_units?: number;
+    previous_invested?: number;
+    previous_value?: number;
+    added_units?: number;
+    added_invested?: number;
+    added_value?: number;
+    new_units?: number;
+    new_invested?: number;
+    new_value?: number;
+    timestamp: string;
+  };
 }
 
 // API Base URLs for segregated Lambda functions
