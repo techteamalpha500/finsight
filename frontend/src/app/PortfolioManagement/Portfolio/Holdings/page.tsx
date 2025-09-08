@@ -115,6 +115,10 @@ export default function HoldingsPage() {
 	const [importError, setImportError] = useState("");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	
+	// Breakdown state
+	const [breakdownData, setBreakdownData] = useState<any>(null);
+	const [showBreakdown, setShowBreakdown] = useState(false);
+	
 	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
@@ -756,7 +760,12 @@ export default function HoldingsPage() {
 		
 		try {
 			// Save to DynamoDB
-			await saveHolding(holding);
+			const response = await saveHolding(holding);
+			
+			// Store breakdown data if available
+			if (response && response.breakdown) {
+				setBreakdownData(response.breakdown);
+			}
 			
 			// Show loading state and refresh holdings from DynamoDB
 			setIsRefreshing(true);
@@ -982,6 +991,11 @@ export default function HoldingsPage() {
 		try {
 			setIsRefreshing(true);
 			
+			// Store breakdown data if available
+			if (importResult && importResult.breakdown) {
+				setBreakdownData(importResult.breakdown);
+			}
+			
 			// Refresh holdings data from the database
 			await loadHoldingsData();
 			setIsRefreshing(false);
@@ -1006,6 +1020,14 @@ export default function HoldingsPage() {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					<div className="text-sm text-muted-foreground">Holdings</div>
+					{breakdownData && (
+						<button
+							onClick={() => setShowBreakdown(!showBreakdown)}
+							className="text-xs text-blue-600 hover:text-blue-700 underline"
+						>
+							{showBreakdown ? 'Hide' : 'Show'} Breakdown
+						</button>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
 					<Button 
@@ -1186,6 +1208,9 @@ export default function HoldingsPage() {
 												<div className="flex items-start justify-between mb-3">
 													<div className="flex-1">
 														<div className="font-medium text-foreground text-sm mb-1">{holding.name}</div>
+														{holding.symbol && (
+															<div className="text-xs text-muted-foreground mb-1">{holding.symbol}</div>
+														)}
 														<div className="text-xs text-muted-foreground">
 															{holding.asset_class || holding.instrumentClass} • {holding.portfolio_role || getRoleForAssetClass(holding.instrumentClass)}
 														</div>

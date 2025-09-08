@@ -418,11 +418,41 @@ def handler(event, context):
                         }
                     )
                     
-                    return _response(200, {"holdingId": existing_holding["id"], "action": "merged"})
+                    return _response(200, {
+                       "holdingId": existing_holding["id"], 
+                       "action": "merged",
+                       "breakdown": {
+                           "operation": "UI Entry Merged",
+                           "holding_name": holding.get('name', 'Unknown'),
+                           "broker": holding.get('broker', 'Unknown'),
+                           "previous_units": current_units,
+                           "previous_invested": current_invested,
+                           "previous_value": current_value,
+                           "added_units": float(holding.get('units', 0)),
+                           "added_invested": float(holding.get('investedAmount', 0)),
+                           "added_value": float(holding.get('currentValue', 0)),
+                           "new_units": new_units,
+                           "new_invested": new_invested,
+                           "new_value": new_current,
+                           "timestamp": now
+                       }
+                   })
                 else:
                     # Create new holding using unified function
                     stored_holding = _store_holding_unified(user_id, holding, source="ui")
-                    return _response(200, {"holdingId": stored_holding["id"], "action": "created"})
+                    return _response(200, {
+                        "holdingId": stored_holding["id"], 
+                        "action": "created",
+                        "breakdown": {
+                            "operation": "New UI Entry Created",
+                            "holding_name": holding.get('name', 'Unknown'),
+                            "broker": holding.get('broker', 'Unknown'),
+                            "units": float(holding.get('units', 0)),
+                            "invested_amount": float(holding.get('investedAmount', 0)),
+                            "current_value": float(holding.get('currentValue', 0)),
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                    })
                     
             except Exception as e:
                 return _response(500, {"error": f"Failed to create holding: {str(e)}"})
@@ -1040,7 +1070,20 @@ def handler(event, context):
                     'imported': imported_count,
                     'updated': updated_count,
                     'total_processed': len(stocks_data),
-                    'errors': errors
+                    'errors': errors,
+                    'breakdown': {
+                        'operation': 'Import Override',
+                        'broker': broker,
+                        'total_stocks': len(stocks_data),
+                        'successful_imports': imported_count,
+                        'updated_existing': updated_count,
+                        'failed_imports': len(errors),
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'details': {
+                            'imported_stocks': [stock.get('name', 'Unknown') for stock in stocks_data if stock.get('name')],
+                            'failed_stocks': [error.split(':')[0].replace('Stock ', '') for error in errors if 'Stock ' in error]
+                        }
+                    }
                 }
                 
                 if errors:

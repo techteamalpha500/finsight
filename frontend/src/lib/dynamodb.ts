@@ -215,7 +215,7 @@ export async function searchFundsByName(searchTerm: string): Promise<Transformed
   return filteredFunds.slice(0, 10);
 }
 
-export async function saveHolding(holding: HoldingData): Promise<boolean> {
+export async function saveHolding(holding: HoldingData): Promise<any> {
   if (!API_BASE) {
     throw new Error('API_BASE not configured');
   }
@@ -233,7 +233,8 @@ export async function saveHolding(holding: HoldingData): Promise<boolean> {
       throw new Error(`Save holding failed: ${res.status} - ${errorText}`);
     }
     
-    return true;
+    const responseData = await res.json();
+    return responseData;
   } catch (error) {
     throw error;
   }
