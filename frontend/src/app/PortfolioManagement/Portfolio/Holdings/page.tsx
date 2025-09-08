@@ -718,8 +718,20 @@ export default function HoldingsPage() {
 		
 		// Calculate units for Mutual Funds and ETFs based on investment amount and NAV
 		let calculatedUnits: number | undefined;
+		let calculatedInvestedAmount: number | undefined;
+		let calculatedCurrentValue: number | undefined;
+		
+		// For Mutual Funds and ETFs: calculate units from invested amount
 		if ((selectedRole === 'Mutual Funds' || selectedRole === 'ETF') && form.investedAmount && form.price) {
 			calculatedUnits = parseFloat(form.investedAmount) / parseFloat(form.price);
+			calculatedInvestedAmount = parseFloat(form.investedAmount);
+			calculatedCurrentValue = calculatedUnits * parseFloat(form.price);
+		}
+		// For Stocks: calculate invested amount and current value from units and price
+		else if (selectedRole === 'Stocks' && form.units && form.price) {
+			calculatedUnits = parseFloat(form.units);
+			calculatedInvestedAmount = calculatedUnits * parseFloat(form.price);
+			calculatedCurrentValue = calculatedUnits * parseFloat(form.price);
 		}
 
 		const holding: HoldingData = {
@@ -730,8 +742,8 @@ export default function HoldingsPage() {
 			symbol: form.symbol.trim() || undefined,
 			units: calculatedUnits || (form.units ? parseFloat(form.units) : undefined),
 			price: form.price ? parseFloat(form.price) : undefined,
-			investedAmount: form.investedAmount ? parseFloat(form.investedAmount) : undefined,
-			currentValue: form.currentValue ? parseFloat(form.currentValue) : undefined,
+			investedAmount: calculatedInvestedAmount || (form.investedAmount ? parseFloat(form.investedAmount) : undefined),
+			currentValue: calculatedCurrentValue || (form.currentValue ? parseFloat(form.currentValue) : undefined),
 			asset_class: assetClass,
 			portfolio_role: portfolioRole,
 			broker: form.broker,

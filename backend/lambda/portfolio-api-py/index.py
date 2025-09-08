@@ -114,142 +114,42 @@ def _is_broker_compatible(existing_broker, import_broker):
     return False
 
 def _find_existing_holding(user_id, stock, import_broker=None):
-    """Find existing holding using multiple matching strategies with broker consideration"""
+    """Find existing holding using broker + ISIN + symbol matching"""
     try:
-        print(f"🔍 _find_existing_holding called for: {stock.get('name', 'Unknown')} (ISIN: {stock.get('isin', 'None')}, Import Broker: {import_broker})")
+        print(f"🔍 _find_existing_holding called for: {stock.get('name', 'Unknown')} (ISIN: {stock.get('isin', 'None')}, Symbol: {stock.get('symbol', 'None')}, Broker: {import_broker})")
         
-        # Strategy 1: Match by ISIN if available
-        if 'isin' in stock and stock['isin']:
-            print(f"🔍 Strategy 1: Trying ISIN match for {stock['isin']}")
-            # First try exact ISIN match
-            scan_response = holdings_table.scan(
-                FilterExpression='user_id = :user_id AND contains(#data, :isin)',
-                ExpressionAttributeNames={'#data': 'data'},
-                ExpressionAttributeValues={
-                    ':user_id': user_id,
-                    ':isin': stock['isin']
-                }
-            )
-            
-            items = scan_response.get('Items', [])
-            print(f"🔍 ISIN scan returned {len(items)} items")
-            # Filter for exact ISIN match in data.isin field
-            isin_matches = [h for h in items if h.get('data', {}).get('isin') == stock['isin']]
-            print(f"🔍 Exact ISIN matches: {len(isin_matches)}")
-            if isin_matches:
-                # Check broker compatibility
-                existing_broker = isin_matches[0].get('data', {}).get('broker', 'manual')
-                if _is_broker_compatible(existing_broker, import_broker):
-                    print(f"✅ ISIN match found: {isin_matches[0].get('data', {}).get('name', 'Unknown')} (Broker: {existing_broker})")
-                    return isin_matches[0]
-                else:
-                    print(f"⚠️ ISIN match found but broker incompatible: {existing_broker} vs {import_broker}")
-        
-        # Strategy 2: Match by symbol (exact match)
-        print(f"🔍 Strategy 2: Trying symbol match for {stock.get('symbol', 'None')}")
-        try:
-            # Query holdings table for holdings with matching symbol
-            scan_response = holdings_table.scan(
-                FilterExpression='user_id = :user_id AND contains(#data, :symbol)',
-                ExpressionAttributeNames={'#data': 'data'},
-                ExpressionAttributeValues={
-                    ':user_id': user_id,
-                    ':symbol': stock['symbol']
-                }
-            )
-            
-            items = scan_response.get('Items', [])
-            print(f"🔍 Symbol scan returned {len(items)} items")
-            # Filter for exact symbol match in data.symbol field
-            symbol_matches = [h for h in items if h.get('data', {}).get('symbol') == stock['symbol']]
-            print(f"🔍 Exact symbol matches: {len(symbol_matches)}")
-            if symbol_matches:
-                # Check broker compatibility
-                existing_broker = symbol_matches[0].get('data', {}).get('broker', 'manual')
-                if _is_broker_compatible(existing_broker, import_broker):
-                    print(f"✅ Symbol match found: {symbol_matches[0].get('data', {}).get('name', 'Unknown')} (Broker: {existing_broker})")
-                    return symbol_matches[0]
-                else:
-                    print(f"⚠️ Symbol match found but broker incompatible: {existing_broker} vs {import_broker}")
-        except Exception as e:
-            print(f"Symbol query failed: {e}")
-        
-        # Strategy 3: Match by name similarity (for cases like "Tata Motors Limited" vs "TATAMOTORS")
-        if 'isin' in stock and stock['isin']:
-            print(f"🔍 Strategy 3: Trying name similarity match")
-            # Get company name from stock companies table
-            company_name = _get_company_name_by_isin(stock['isin'])
-            print(f"🔍 Company name from ISIN: {company_name}")
-            if company_name:
-                # Scan all holdings and check for name similarity
-                all_holdings_response = holdings_table.scan(
-                    FilterExpression='user_id = :user_id',
-                    ExpressionAttributeValues={':user_id': user_id}
-                )
-                
-                all_holdings = all_holdings_response.get('Items', [])
-                print(f"🔍 Scanning {len(all_holdings)} existing holdings for name similarity")
-                for holding in all_holdings:
-                    holding_name = holding.get('data', {}).get('name', '').lower()
-                    holding_symbol = holding.get('data', {}).get('symbol', '').lower()
-                    existing_broker = holding.get('data', {}).get('broker', 'manual')
-                    
-                    print(f"🔍 Checking holding: {holding_name} (symbol: {holding_symbol}, broker: {existing_broker})")
-                    
-                    # Check if company name matches holding name
-                    if holding_name and (company_name.lower() in holding_name or holding_name in company_name.lower()):
-                        # Check broker compatibility
-                        if _is_broker_compatible(existing_broker, import_broker):
-                            print(f"✅ Name match found: {holding_name} (Broker: {existing_broker})")
-                            return holding
-                        else:
-                            print(f"⚠️ Name match found but broker incompatible: {existing_broker} vs {import_broker}")
-                    
-                    # Check if company name matches holding symbol (for cases like TATAMOTORS)
-                    if holding_symbol and _is_symbol_company_match(holding_symbol, company_name):
-                        print(f"✅ Symbol-company match found: {holding_symbol} -> {company_name}")
-                        return holding
-        
-        # Strategy 4: Match by name similarity for stocks without ISIN (UI-created stocks)
-        print(f"🔍 Strategy 4: Trying name similarity for stocks without ISIN")
-        # Scan all holdings and check for name similarity with imported stock name
-        all_holdings_response = holdings_table.scan(
+        # Get all holdings for this user
+        scan_response = holdings_table.scan(
             FilterExpression='user_id = :user_id',
             ExpressionAttributeValues={':user_id': user_id}
         )
         
-        all_holdings = all_holdings_response.get('Items', [])
-        print(f"🔍 Scanning {len(all_holdings)} existing holdings for name similarity (no ISIN)")
+        all_holdings = scan_response.get('Items', [])
+        print(f"🔍 Found {len(all_holdings)} total holdings for user")
         
-        imported_name = stock.get('name', '').lower()
-        imported_symbol = stock.get('symbol', '').lower()
-        
+        # Look for matching holdings
         for holding in all_holdings:
-            holding_name = holding.get('data', {}).get('name', '').lower()
-            holding_symbol = holding.get('data', {}).get('symbol', '').lower()
+            holding_data = holding.get('data', {})
+            existing_broker = holding_data.get('broker', 'manual')
+            existing_isin = holding_data.get('isin', '')
+            existing_symbol = holding_data.get('symbol', '')
             
-            print(f"🔍 Checking holding: {holding_name} (symbol: {holding_symbol}) vs imported: {imported_name} (symbol: {imported_symbol})")
+            print(f"🔍 Checking holding: {holding_data.get('name', 'Unknown')} (broker: {existing_broker}, isin: {existing_isin}, symbol: {existing_symbol})")
             
-            # Check if imported name matches holding name
-            if holding_name and imported_name and (imported_name in holding_name or holding_name in imported_name):
-                print(f"✅ Name match found: {holding_name} matches {imported_name}")
-                return holding
+            # Match by broker + ISIN + symbol
+            broker_match = existing_broker.lower() == import_broker.lower() if import_broker else True
+            isin_match = stock.get('isin') and existing_isin and stock['isin'] == existing_isin
+            symbol_match = stock.get('symbol') and existing_symbol and stock['symbol'] == existing_symbol
             
-            # Check if imported symbol matches holding name (for cases like "TATAMOTORS" vs "Tata Motors Limited")
-            if holding_name and imported_symbol and _is_symbol_company_match(imported_symbol, holding_name):
-                print(f"✅ Symbol-name match found: {imported_symbol} -> {holding_name}")
-                return holding
-            
-            # Check if imported name matches holding symbol
-            if holding_symbol and imported_name and _is_symbol_company_match(holding_symbol, imported_name):
-                print(f"✅ Name-symbol match found: {imported_name} -> {holding_symbol}")
+            if broker_match and (isin_match or symbol_match):
+                print(f"✅ Match found: {holding_data.get('name', 'Unknown')} (Broker: {existing_broker}, ISIN: {isin_match}, Symbol: {symbol_match})")
                 return holding
         
-        
+        print(f"❌ No existing holding found for {stock.get('name', 'Unknown')}")
         return None
         
     except Exception as e:
-        print(f"Error finding existing holding: {e}")
+        print(f"Error in _find_existing_holding: {e}")
         return None
 
 def _convert_floats_to_decimals(obj):
@@ -486,10 +386,47 @@ def handler(event, context):
                 # Use the user_id from the holding data if available, otherwise use the JWT user
                 user_id = holding.get("user_id", user_sub)
                 
-                # Use unified function to store holding
-                stored_holding = _store_holding_unified(user_id, holding, source="ui")
+                # Check if existing holding exists for UI entry (should merge, not override)
+                existing_holding = _find_existing_holding(user_id, holding, holding.get('broker'))
                 
-                return _response(200, {"holdingId": stored_holding["id"]})
+                if existing_holding:
+                    # MERGE UI entry with existing holding
+                    existing_data = existing_holding.get('data', {})
+                    
+                    # Calculate new values (merge, not override)
+                    current_units = float(existing_data.get('units', 0))
+                    current_invested = float(existing_data.get('investedAmount', 0))
+                    current_value = float(existing_data.get('currentValue', 0))
+                    
+                    new_units = current_units + float(holding.get('units', 0))
+                    new_invested = current_invested + float(holding.get('investedAmount', 0))
+                    new_current = current_value + float(holding.get('currentValue', 0))
+                    
+                    print(f"🔢 MERGING UI entry with existing holding for {holding.get('name', 'Unknown')}:")
+                    print(f"   Existing: {current_units} units, ₹{current_invested} invested, ₹{current_value} value")
+                    print(f"   UI Entry: {holding.get('units', 0)} units, ₹{holding.get('investedAmount', 0)} invested, ₹{holding.get('currentValue', 0)} value")
+                    print(f"   Result: {new_units} units, ₹{new_invested} invested, ₹{new_current} value")
+                    
+                    # Update existing holding
+                    now = datetime.utcnow().isoformat()
+                    holdings_table.update_item(
+                        Key={'id': existing_holding['id']},
+                        UpdateExpression="SET #data.units = :units, #data.investedAmount = :invested, #data.currentValue = :current, #data.updated_at = :updated_at, updated_at = :updated_at",
+                        ExpressionAttributeNames={'#data': 'data'},
+                        ExpressionAttributeValues={
+                            ':units': Decimal(str(new_units)),
+                            ':invested': Decimal(str(new_invested)),
+                            ':current': Decimal(str(new_current)),
+                            ':updated_at': now
+                        }
+                    )
+                    
+                    return _response(200, {"holdingId": existing_holding["id"], "action": "merged"})
+                else:
+                    # Create new holding using unified function
+                    stored_holding = _store_holding_unified(user_id, holding, source="ui")
+                    return _response(200, {"holdingId": stored_holding["id"], "action": "created"})
+                    
             except Exception as e:
                 return _response(500, {"error": f"Failed to create holding: {str(e)}"})
 
