@@ -1773,22 +1773,6 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
-												<div>
-													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
-													<select
-														value={form.broker}
-														onChange={(e) => setForm({ ...form, broker: e.target.value })}
-														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-													>
-														<option value="manual">Manual Entry</option>
-														<option value="zerodha">Zerodha</option>
-														<option value="groww">Groww</option>
-														<option value="upstox">Upstox</option>
-														<option value="angel">Angel</option>
-														<option value="other">Other</option>
-													</select>
-												</div>
-
 											</>
 										)}
 
@@ -1879,22 +1863,6 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
-												<div>
-													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
-													<select
-														value={form.broker}
-														onChange={(e) => setForm({ ...form, broker: e.target.value })}
-														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-													>
-														<option value="manual">Manual Entry</option>
-														<option value="zerodha">Zerodha</option>
-														<option value="groww">Groww</option>
-														<option value="upstox">Upstox</option>
-														<option value="angel">Angel</option>
-														<option value="other">Other</option>
-													</select>
-												</div>
-
 											</>
 										)}
 
@@ -1983,22 +1951,6 @@ export default function HoldingsPage() {
 															step="0.01"
 														/>
 													</div>
-												</div>
-
-												<div>
-													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
-													<select
-														value={form.broker}
-														onChange={(e) => setForm({ ...form, broker: e.target.value })}
-														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-													>
-														<option value="manual">Manual Entry</option>
-														<option value="zerodha">Zerodha</option>
-														<option value="groww">Groww</option>
-														<option value="upstox">Upstox</option>
-														<option value="angel">Angel</option>
-														<option value="other">Other</option>
-													</select>
 												</div>
 
 											</>
