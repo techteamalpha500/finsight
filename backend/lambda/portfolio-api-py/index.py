@@ -111,6 +111,10 @@ def _is_broker_compatible(existing_broker, import_broker):
     if existing_broker == 'manual':
         return True
     
+    # "Other" entries can be overridden by CAS imports (broker = "other")
+    if existing_broker == 'other' and import_broker == 'other':
+        return True
+    
     # Same broker can be merged (e.g., Zerodha UI entry + Zerodha import)
     if existing_broker == import_broker:
         return True

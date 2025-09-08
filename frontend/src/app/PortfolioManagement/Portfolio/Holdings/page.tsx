@@ -3,13 +3,12 @@ import React, { useMemo, useState } from "react";
 
 import type { AssetClass } from "../../domain/allocationEngine";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Search, TrendingUp, BarChart3, PieChart as PieChartIcon, Upload, Lock, ExternalLink, AlertCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Card as PlanCard, CardContent as PlanCardContent, CardHeader as PlanCardHeader, CardTitle as PlanCardTitle } from "../../../components/Card";
 import { Button } from "../../../components/Button";
-import { fetchMutualFundSchemes, searchFundsByName, TransformedFund, saveHolding, fetchUserHoldings, HoldingData, preloadMutualFundData, clearMFCache, deleteHolding, fetchStockCompanies, searchStockCompanies, StockCompany, preloadStockData } from "../../../../lib/dynamodb";
-import ImportStocksModal from "./ImportStocksModal";
-import { type CASData } from "./casParser";
+import { fetchMutualFundSchemes, searchFundsByName, TransformedFund, saveHolding, fetchUserHoldings, HoldingData, preloadMutualFundData, clearMFCache, deleteHolding, fetchStockCompanies, searchStockCompanies, StockCompany, preloadStockData, parseCASFile, importCASData } from "../../../../lib/dynamodb";
+import { validateCASFile, extractBrokerFromFilename, formatCASDataForDisplay, type CASData } from "./casParser";
 
 // Asset class colors for charts
 const CLASS_COLORS = {
@@ -103,8 +102,18 @@ export default function HoldingsPage() {
 	
 	// Modal state
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
+	
+	// Entry mode: 'manual' or 'import'
+	const [entryMode, setEntryMode] = useState<'manual' | 'import'>('manual');
+	
+	// Import-related state
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [password, setPassword] = useState("");
+	const [isDragOver, setIsDragOver] = useState(false);
+	const [isProcessing, setIsProcessing] = useState(false);
+	const [importError, setImportError] = useState("");
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	
 	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1);
@@ -117,7 +126,7 @@ export default function HoldingsPage() {
 	// New state for asset class-based flow
 	const [selectedRole, setSelectedRole] = useState<'Stocks' | 'Mutual Funds' | 'ETF' | 'Gold' | 'Real Estate' | null>(null);
 	const [selectedInstrumentType, setSelectedInstrumentType] = useState<string | null>(null);
-	const [entryMode, setEntryMode] = useState<'units' | 'amount'>('units');
+	const [inputMode, setInputMode] = useState<'units' | 'amount'>('units');
 	
 	// Store original values for edit mode reset
 	const [originalForm, setOriginalForm] = useState<HoldingData | null>(null);
@@ -136,7 +145,7 @@ export default function HoldingsPage() {
 	const [stockOptions, setStockOptions] = useState<StockCompany[]>([]);
 	const [isLoadingStocks, setIsLoadingStocks] = useState(false);
 	
-	// Entry mode: 'units' or 'amount'
+	// Form state
 	const [form, setForm] = useState({
 		instrumentClass: "Stocks" as AssetClass,
 		name: "",
@@ -606,7 +615,12 @@ export default function HoldingsPage() {
 			// Reset role-based state
 			setSelectedRole(null);
 			setSelectedInstrumentType(null);
-			setEntryMode('units');
+			setInputMode('units');
+			// Reset entry mode and import state
+			setEntryMode('manual');
+			setSelectedFile(null);
+			setPassword("");
+			setImportError("");
 		}
 		}
 	
@@ -617,11 +631,46 @@ export default function HoldingsPage() {
 		setSelectedInstrumentType(null);
 		setSelectedMF(null);
 		setSelectedStock(null);
+		setEntryMode('manual');
+		setSelectedFile(null);
+		setPassword("");
+		setImportError("");
 	}
 	
 	async function submitForm(e: React.FormEvent) {
 		e.preventDefault();
 		
+		// Handle import mode
+		if (entryMode === 'import') {
+			if (!selectedFile || (form.broker === 'other' && !password.trim())) return;
+			
+			setIsProcessing(true);
+			setImportError("");
+
+			try {
+				// Step 1: Parse the CAS file using the import-stocks lambda
+				const casData = await parseCASFile(selectedFile, password, form.broker);
+				
+				// Step 2: Import the parsed data to holdings using portfolio lambda
+				const result = await importCASData(casData);
+				
+				// Handle the import result
+				await handleImportStocks(result);
+				
+				// Close modal and reset
+				setIsModalOpen(false);
+				clearEditState();
+				resetForm();
+			} catch (err) {
+				console.error('Import error:', err);
+				setImportError(err instanceof Error ? err.message : "Failed to process file. Please check the file and password.");
+			} finally {
+				setIsProcessing(false);
+			}
+			return;
+		}
+		
+		// Handle manual mode
 		if (!form.name.trim()) return;
 		
 		// Map selected asset class to instrument class
@@ -787,6 +836,117 @@ export default function HoldingsPage() {
 		}
 	}
 
+	// Import-related functions
+	const brokers = [
+		"Manual Entry",
+		"Zerodha",
+		"Groww", 
+		"Upstox",
+		"Angel",
+		"Other"
+	];
+
+	// Define supported file formats for each broker
+	const brokerFileFormats = {
+		"Other": {
+			label: "CAS File",
+			description: "Upload your Consolidated Account Statement (CAS)",
+			accept: ".pdf",
+			helpText: "CAS (Consolidated Account Statement) is a document that contains all your holdings across different brokers."
+		},
+		"Zerodha": {
+			label: "Zerodha Holdings File",
+			description: "Upload your Zerodha holdings export file",
+			accept: ".csv,.xlsx,.pdf",
+			helpText: "Export your holdings from Zerodha Console as CSV/Excel or upload your CAS file."
+		},
+		"Groww": {
+			label: "Groww Holdings File", 
+			description: "Upload your Groww holdings export file",
+			accept: ".csv,.xlsx,.pdf",
+			helpText: "Export your holdings from Groww app as CSV/Excel or upload your CAS file."
+		},
+		"Upstox": {
+			label: "Upstox Holdings File",
+			description: "Upload your Upstox holdings export file", 
+			accept: ".csv,.xlsx,.pdf",
+			helpText: "Export your holdings from Upstox Pro as CSV/Excel or upload your CAS file."
+		},
+		"Angel": {
+			label: "Angel Holdings File",
+			description: "Upload your Angel holdings export file",
+			accept: ".csv,.xlsx,.pdf", 
+			helpText: "Export your holdings from Angel One as CSV/Excel or upload your CAS file."
+		}
+	};
+
+	// File validation function
+	const validateFile = (file: File, selectedBroker: string): boolean => {
+		// Check file size (max 10MB)
+		if (file.size > 10 * 1024 * 1024) {
+			return false;
+		}
+		
+		const format = brokerFileFormats[selectedBroker as keyof typeof brokerFileFormats];
+		if (!format) return false;
+		
+		const acceptedTypes = format.accept.split(',').map(type => type.trim());
+		
+		// Check file extension
+		const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+		return acceptedTypes.includes(fileExtension);
+	};
+
+	const handleDragOver = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragOver(true);
+	};
+
+	const handleDragLeave = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragOver(false);
+	};
+
+	const handleDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragOver(false);
+		
+		const files = e.dataTransfer.files;
+		if (files.length > 0) {
+			const file = files[0];
+			if (validateFile(file, form.broker)) {
+				setSelectedFile(file);
+				setImportError("");
+				// Auto-detect broker from filename
+				const detectedBroker = extractBrokerFromFilename(file.name);
+				if (detectedBroker !== 'Other') {
+					setForm({ ...form, broker: detectedBroker.toLowerCase() });
+				}
+			} else {
+				const currentFormat = brokerFileFormats[form.broker as keyof typeof brokerFileFormats];
+				setImportError(`Please upload a valid file (${currentFormat?.accept || 'supported format'}) under 10MB`);
+			}
+		}
+	};
+
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			if (validateFile(file, form.broker)) {
+				setSelectedFile(file);
+				setImportError("");
+				// Auto-detect broker from filename
+				const detectedBroker = extractBrokerFromFilename(file.name);
+				if (detectedBroker !== 'Other') {
+					setForm({ ...form, broker: detectedBroker.toLowerCase() });
+				}
+			} else {
+				const currentFormat = brokerFileFormats[form.broker as keyof typeof brokerFileFormats];
+				setImportError(`Please upload a valid file (${currentFormat?.accept || 'supported format'}) under 10MB`);
+			}
+		}
+	};
+
 	// Handle import from CAS
 	async function handleImportStocks(importResult: any) {
 		try {
@@ -818,14 +978,6 @@ export default function HoldingsPage() {
 					<div className="text-sm text-muted-foreground">Holdings</div>
 				</div>
 				<div className="flex items-center gap-2">
-					<Button 
-						onClick={() => setIsImportModalOpen(true)} 
-						variant="outline" 
-						size="sm"
-						leftIcon={<Upload size={16} />}
-					>
-						Import Stocks
-					</Button>
 					<Button 
 						onClick={() => setIsModalOpen(true)} 
 						variant="outline" 
@@ -1265,59 +1417,267 @@ export default function HoldingsPage() {
 						<div className="px-6 py-4 border-b border-border flex items-center justify-between">
 							<div>
 								<div className="text-lg font-bold text-foreground">{editingId ? "Edit Holding" : "Add New Holding"}</div>
-								<div className="text-sm text-muted-foreground mt-1">Select portfolio role and instrument details</div>
+								<div className="text-sm text-muted-foreground mt-1">
+									{editingId ? "Modify existing holding details" : 
+									 entryMode === 'manual' ? "Select portfolio role and instrument details" : 
+									 "Import holdings from broker or CAS file"}
+								</div>
 							</div>
 							<button onClick={() => { setIsModalOpen(false); resetForm(); }} className="p-2 rounded-full hover:bg-muted transition-colors" aria-label="Close">
 								<X size={18} className="text-muted-foreground" />
 							</button>
 						</div>
 						
-						{/* Asset Class Selection - Top Row */}
-						<div className="px-6 py-3 border-b border-border">
-							<div className="text-center">
-								<label className="block text-sm font-medium text-foreground mb-3 flex items-center justify-center gap-2">
-									<BarChart3 size={16} />
-									Asset Class
-								</label>
-								<div className="flex items-center justify-center gap-3">
-									{(['Stocks', 'Mutual Funds', 'ETF', 'Gold', 'Real Estate'] as const).map(assetClass => (
+						{/* Entry Mode Selection - Top Row */}
+						{!editingId && (
+							<div className="px-6 py-3 border-b border-border">
+								<div className="text-center">
+									<label className="block text-sm font-medium text-foreground mb-3 flex items-center justify-center gap-2">
+										<BarChart3 size={16} />
+										Entry Mode
+									</label>
+									<div className="flex items-center justify-center gap-3">
 										<button
-											key={assetClass}
 											type="button"
 											onClick={() => {
-												if (editingId) return; // Disable in edit mode
-												setSelectedRole(assetClass as any);
-												setSelectedInstrumentType(null);
-												// hard reset form and per-asset state
-												setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "" });
-												setStockSearchTerm("");
-												setSelectedStock(null);
-												setFilteredStockOptions([]);
-												setShowStockDropdown(false);
-												setMfSearchTerm("");
-												setSelectedMF(null);
-												setFilteredMFOptions([]);
-												setShowMFDropdown(false);
+												setEntryMode('manual');
+												setSelectedRole(null);
+												setSelectedFile(null);
+												setPassword("");
+												setImportError("");
 											}}
 											className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform ${
-												selectedRole === assetClass
+												entryMode === 'manual'
 													? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg scale-105 ring-2 ring-blue-500/30"
-													: editingId 
-														? "bg-muted/50 text-muted-foreground cursor-not-allowed opacity-50"
-														: "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-102"
+													: "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-102"
 											}`}
 										>
-											{assetClass}
+											Manual Entry
 										</button>
-									))}
+										<button
+											type="button"
+											onClick={() => {
+												setEntryMode('import');
+												setSelectedRole(null);
+												setForm({ ...form, broker: "other" });
+											}}
+											className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform ${
+												entryMode === 'import'
+													? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg scale-105 ring-2 ring-emerald-500/30"
+													: "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-102"
+											}`}
+										>
+											Import from File
+										</button>
+									</div>
 								</div>
 							</div>
-						</div>
+						)}
+
+						{/* Broker Selection - Only for import mode or when editing */}
+						{(entryMode === 'import' || editingId) && (
+							<div className="px-6 py-3 border-b border-border">
+								<div className="text-center">
+									<label className="block text-sm font-medium text-foreground mb-3 flex items-center justify-center gap-2">
+										<BarChart3 size={16} />
+										Broker
+									</label>
+									<select
+										value={form.broker}
+										onChange={(e) => setForm({ ...form, broker: e.target.value })}
+										className="w-full max-w-xs mx-auto rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+									>
+										{brokers.map((brokerOption) => (
+											<option key={brokerOption} value={brokerOption.toLowerCase()}>
+												{brokerOption}
+											</option>
+										))}
+									</select>
+								</div>
+							</div>
+						)}
+
+						{/* Asset Class Selection - Only for manual mode */}
+						{entryMode === 'manual' && !editingId && (
+							<div className="px-6 py-3 border-b border-border">
+								<div className="text-center">
+									<label className="block text-sm font-medium text-foreground mb-3 flex items-center justify-center gap-2">
+										<BarChart3 size={16} />
+										Asset Class
+									</label>
+									<div className="flex items-center justify-center gap-3">
+										{(['Stocks', 'Mutual Funds', 'ETF', 'Gold', 'Real Estate'] as const).map(assetClass => (
+											<button
+												key={assetClass}
+												type="button"
+												onClick={() => {
+													setSelectedRole(assetClass as any);
+													setSelectedInstrumentType(null);
+													// hard reset form and per-asset state
+													setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "", broker: form.broker });
+													setStockSearchTerm("");
+													setSelectedStock(null);
+													setFilteredStockOptions([]);
+													setShowStockDropdown(false);
+													setMfSearchTerm("");
+													setSelectedMF(null);
+													setFilteredMFOptions([]);
+													setShowMFDropdown(false);
+												}}
+												className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform ${
+													selectedRole === assetClass
+														? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg scale-105 ring-2 ring-blue-500/30"
+														: "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-102"
+												}`}
+											>
+												{assetClass}
+											</button>
+										))}
+									</div>
+								</div>
+							</div>
+						)}
 						
 						<div className="min-h-[300px]">
 							{/* Form Column - Full Width */}
 							<div className="w-full p-4">
-								{selectedRole ? (
+								{/* Import Mode Form */}
+								{entryMode === 'import' ? (
+									<form onSubmit={submitForm} className="space-y-6">
+										{/* File Upload Section */}
+										<div>
+											<label className="block text-sm font-medium text-foreground mb-2">
+												{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.label || "File"}
+											</label>
+											<div
+												className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+													isDragOver
+														? "border-primary bg-primary/5"
+														: "border-border hover:border-primary/50"
+												}`}
+												onDragOver={handleDragOver}
+												onDragLeave={handleDragLeave}
+												onDrop={handleDrop}
+											>
+												<input
+													ref={fileInputRef}
+													type="file"
+													accept={brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "*"}
+													onChange={handleFileSelect}
+													className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+													disabled={isProcessing}
+												/>
+												
+												{selectedFile ? (
+													<div className="space-y-2">
+														<Upload className="mx-auto h-8 w-8 text-primary" />
+														<div className="text-sm font-medium text-foreground">{selectedFile.name}</div>
+														<div className="text-xs text-muted-foreground">
+															{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+														</div>
+														<button
+															type="button"
+															onClick={() => setSelectedFile(null)}
+															className="text-xs text-rose-600 hover:text-rose-700"
+															disabled={isProcessing}
+														>
+															Remove file
+														</button>
+													</div>
+												) : (
+													<div className="space-y-2">
+														<Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+														<div className="text-sm font-medium text-foreground">
+															Drop your file here or click to browse
+														</div>
+														<div className="text-xs text-muted-foreground">
+															{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.description || "Select a file to upload"}
+														</div>
+													</div>
+												)}
+											</div>
+											
+											{/* Help Link */}
+											<div className="mt-2">
+												<a
+													href="#"
+													className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+													onClick={(e) => {
+														e.preventDefault();
+														const helpText = brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.helpText || "No help available";
+														alert(helpText);
+													}}
+												>
+													<ExternalLink size={12} />
+													{form.broker === "other" ? "How to generate CAS?" : "How to export holdings?"}
+												</a>
+											</div>
+										</div>
+
+										{/* Password Field - Only show for CAS files (Other broker) */}
+										{form.broker === 'other' && (
+											<div>
+												<label className="block text-sm font-medium text-foreground mb-2">
+													Password
+												</label>
+												<div className="relative">
+													<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+													<input
+														type="password"
+														value={password}
+														onChange={(e) => setPassword(e.target.value)}
+														placeholder="Enter CAS password"
+														className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm text-foreground"
+														disabled={isProcessing}
+													/>
+												</div>
+												<div className="text-xs text-muted-foreground mt-1">
+													Password used to protect your CAS file
+												</div>
+											</div>
+										)}
+
+										{/* Error Message */}
+										{importError && (
+											<div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg">
+												<AlertCircle className="h-4 w-4 text-rose-600" />
+												<span className="text-sm text-rose-700 dark:text-rose-300">{importError}</span>
+											</div>
+										)}
+
+										{/* Note */}
+										<div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+											<div className="text-xs text-blue-700 dark:text-blue-300">
+												<strong>Note:</strong> Existing stocks in your portfolio will be updated with the imported data.
+											</div>
+										</div>
+
+										{/* Form Actions */}
+										<div className="flex items-center justify-between pt-6 border-t border-border">
+											<div className="flex items-center gap-2">
+												<button
+													type="button"
+													onClick={() => { 
+														setIsModalOpen(false); 
+														clearEditState(); 
+														resetForm(); 
+													}}
+													className="px-4 py-2 rounded-lg text-foreground hover:bg-muted transition-colors text-sm"
+												>
+													Cancel
+												</button>
+											</div>
+											
+											<button
+												type="submit"
+												disabled={!selectedFile || (form.broker === 'other' && !password.trim()) || isProcessing}
+												className="min-w-[140px] px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+											>
+												{isProcessing ? "Processing..." : "Import Holdings"}
+											</button>
+										</div>
+									</form>
+								) : selectedRole ? (
 									<form onSubmit={submitForm} className="space-y-6">
 										{/* Stocks Form */}
 										{selectedRole === 'Stocks' && (
@@ -1838,12 +2198,6 @@ export default function HoldingsPage() {
 				</div>
 			)}
 
-			{/* Import Stocks Modal */}
-			<ImportStocksModal
-				isOpen={isImportModalOpen}
-				onClose={() => setIsImportModalOpen(false)}
-				onImport={handleImportStocks}
-			/>
 		</div>
 	);
 }
