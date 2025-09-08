@@ -127,6 +127,11 @@ def _find_existing_holding(user_id, stock, import_broker=None):
         all_holdings = scan_response.get('Items', [])
         print(f"🔍 Found {len(all_holdings)} total holdings for user")
         
+        # Debug: Print all existing holdings
+        for i, h in enumerate(all_holdings):
+            h_data = h.get('data', {})
+            print(f"   Existing {i+1}: {h_data.get('name', 'Unknown')} (broker: {h_data.get('broker', 'None')}, isin: {h_data.get('isin', 'None')}, symbol: {h_data.get('symbol', 'None')})")
+        
         # Look for matching holdings
         for holding in all_holdings:
             holding_data = holding.get('data', {})
@@ -387,6 +392,12 @@ def handler(event, context):
                 user_id = holding.get("user_id", user_sub)
                 
                 # Check if existing holding exists for UI entry (should merge, not override)
+                print(f"🔍 UI Entry Debug - Looking for existing holding:")
+                print(f"   Holding data: {holding}")
+                print(f"   Broker: {holding.get('broker')}")
+                print(f"   Symbol: {holding.get('symbol')}")
+                print(f"   ISIN: {holding.get('isin')}")
+                
                 existing_holding = _find_existing_holding(user_id, holding, holding.get('broker'))
                 
                 if existing_holding:
