@@ -1474,28 +1474,6 @@ export default function HoldingsPage() {
 							</div>
 						)}
 
-						{/* Broker Selection - Only for import mode or when editing */}
-						{(entryMode === 'import' || editingId) && (
-							<div className="px-6 py-3 border-b border-border">
-								<div className="text-center">
-									<label className="block text-sm font-medium text-foreground mb-3 flex items-center justify-center gap-2">
-										<BarChart3 size={16} />
-										Broker
-									</label>
-									<select
-										value={form.broker}
-										onChange={(e) => setForm({ ...form, broker: e.target.value })}
-										className="w-full max-w-xs mx-auto rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-									>
-										{brokers.map((brokerOption) => (
-											<option key={brokerOption} value={brokerOption.toLowerCase()}>
-												{brokerOption}
-											</option>
-										))}
-									</select>
-								</div>
-							</div>
-						)}
 
 						{/* Asset Class Selection - Only for manual mode */}
 						{entryMode === 'manual' && !editingId && (
@@ -1544,74 +1522,93 @@ export default function HoldingsPage() {
 								{/* Import Mode Form */}
 								{entryMode === 'import' ? (
 									<form onSubmit={submitForm} className="space-y-6">
-										{/* File Upload Section */}
-										<div>
-											<label className="block text-sm font-medium text-foreground mb-2">
-												{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.label || "File"}
-											</label>
-											<div
-												className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-													isDragOver
-														? "border-primary bg-primary/5"
-														: "border-border hover:border-primary/50"
-												}`}
-												onDragOver={handleDragOver}
-												onDragLeave={handleDragLeave}
-												onDrop={handleDrop}
-											>
-												<input
-													ref={fileInputRef}
-													type="file"
-													accept={brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "*"}
-													onChange={handleFileSelect}
-													className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-													disabled={isProcessing}
-												/>
-												
-												{selectedFile ? (
-													<div className="space-y-2">
-														<Upload className="mx-auto h-8 w-8 text-primary" />
-														<div className="text-sm font-medium text-foreground">{selectedFile.name}</div>
-														<div className="text-xs text-muted-foreground">
-															{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-														</div>
-														<button
-															type="button"
-															onClick={() => setSelectedFile(null)}
-															className="text-xs text-rose-600 hover:text-rose-700"
-															disabled={isProcessing}
-														>
-															Remove file
-														</button>
-													</div>
-												) : (
-													<div className="space-y-2">
-														<Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-														<div className="text-sm font-medium text-foreground">
-															Drop your file here or click to browse
-														</div>
-														<div className="text-xs text-muted-foreground">
-															{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.description || "Select a file to upload"}
-														</div>
-													</div>
-												)}
-											</div>
-											
-											{/* Help Link */}
-											<div className="mt-2">
-												<a
-													href="#"
-													className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-													onClick={(e) => {
-														e.preventDefault();
-														const helpText = brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.helpText || "No help available";
-														alert(helpText);
-													}}
+										{/* Broker and File Upload in Same Row */}
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+											{/* Broker Selection */}
+											<div>
+												<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+												<select
+													value={form.broker}
+													onChange={(e) => setForm({ ...form, broker: e.target.value })}
+													className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
 												>
-													<ExternalLink size={12} />
-													{form.broker === "other" ? "How to generate CAS?" : "How to export holdings?"}
-												</a>
+													{brokers.map((brokerOption) => (
+														<option key={brokerOption} value={brokerOption.toLowerCase()}>
+															{brokerOption}
+														</option>
+													))}
+												</select>
 											</div>
+
+											{/* File Upload */}
+											<div>
+												<label className="block text-sm font-medium text-foreground mb-2">
+													{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.label || "File"}
+												</label>
+												<div
+													className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+														isDragOver
+															? "border-primary bg-primary/5"
+															: "border-border hover:border-primary/50"
+													}`}
+													onDragOver={handleDragOver}
+													onDragLeave={handleDragLeave}
+													onDrop={handleDrop}
+												>
+													<input
+														ref={fileInputRef}
+														type="file"
+														accept={brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "*"}
+														onChange={handleFileSelect}
+														className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+														disabled={isProcessing}
+													/>
+													
+													{selectedFile ? (
+														<div className="space-y-1">
+															<Upload className="mx-auto h-6 w-6 text-primary" />
+															<div className="text-xs font-medium text-foreground truncate">{selectedFile.name}</div>
+															<div className="text-xs text-muted-foreground">
+																{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+															</div>
+															<button
+																type="button"
+																onClick={() => setSelectedFile(null)}
+																className="text-xs text-rose-600 hover:text-rose-700"
+																disabled={isProcessing}
+															>
+																Remove
+															</button>
+														</div>
+													) : (
+														<div className="space-y-1">
+															<Upload className="mx-auto h-6 w-6 text-muted-foreground" />
+															<div className="text-xs font-medium text-foreground">
+																Drop file or click
+															</div>
+															<div className="text-xs text-muted-foreground">
+																{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "Any file"}
+															</div>
+														</div>
+													)}
+												</div>
+											</div>
+										</div>
+
+										{/* Help Link */}
+										<div>
+											<a
+												href="#"
+												className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+												onClick={(e) => {
+													e.preventDefault();
+													const helpText = brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.helpText || "No help available";
+													alert(helpText);
+												}}
+											>
+												<ExternalLink size={12} />
+												{form.broker === "other" ? "How to generate CAS?" : "How to export holdings?"}
+											</a>
 										</div>
 
 										{/* Password Field - Only show for CAS files (Other broker) */}
@@ -1773,6 +1770,22 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
+												<div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="manual">Manual Entry</option>
+														<option value="zerodha">Zerodha</option>
+														<option value="groww">Groww</option>
+														<option value="upstox">Upstox</option>
+														<option value="angel">Angel</option>
+														<option value="other">Other</option>
+													</select>
+												</div>
+
 											</>
 										)}
 
@@ -1863,6 +1876,22 @@ export default function HoldingsPage() {
 													</div>
 												</div>
 
+												<div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="manual">Manual Entry</option>
+														<option value="zerodha">Zerodha</option>
+														<option value="groww">Groww</option>
+														<option value="upstox">Upstox</option>
+														<option value="angel">Angel</option>
+														<option value="other">Other</option>
+													</select>
+												</div>
+
 											</>
 										)}
 
@@ -1951,6 +1980,22 @@ export default function HoldingsPage() {
 															step="0.01"
 														/>
 													</div>
+												</div>
+
+												<div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="manual">Manual Entry</option>
+														<option value="zerodha">Zerodha</option>
+														<option value="groww">Groww</option>
+														<option value="upstox">Upstox</option>
+														<option value="angel">Angel</option>
+														<option value="other">Other</option>
+													</select>
 												</div>
 
 											</>
