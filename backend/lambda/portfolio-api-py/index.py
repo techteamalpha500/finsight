@@ -1010,26 +1010,41 @@ def handler(event, context):
                             print(f"❌ No existing holding found, will create new one")
                         
                         if existing_holding:
-                            # Update existing holding in InvestApp table
+                            # Check if we should override or merge based on broker compatibility
                             existing = existing_holding
                             existing_data = existing.get('data', {})
+                            existing_broker = existing_data.get('broker', 'manual')
                             
-                            # Extract current values from nested data structure
-                            current_units = float(existing_data.get('units', 0))
-                            current_invested = float(existing_data.get('investedAmount', 0))
-                            current_value = float(existing_data.get('currentValue', 0))
+                            # Determine if we should override (same broker) or merge (different compatible brokers)
+                            should_override = (existing_broker.lower() == broker.lower())
                             
-                            # Calculate new values
-                            new_units = current_units + float(stock['units'])
-                            new_invested = current_invested + float(stock['investedAmount'])
-                            # Recalculate current value using current price and total units
-                            current_price = float(stock['price'])  # Use the current market price from import
-                            new_current = new_units * current_price
+                            if should_override:
+                                # Override: Use import data directly
+                                new_units = float(stock['units'])
+                                new_invested = float(stock['investedAmount'])
+                                new_current = float(stock['currentValue'])
+                                
+                                print(f"🔄 Overriding existing holding for {stock.get('name', 'Unknown')} (same broker: {broker}):")
+                                print(f"   Existing: {existing_data.get('units', 0)} units, ₹{existing_data.get('investedAmount', 0)} invested")
+                                print(f"   Import: {new_units} units, ₹{new_invested} invested, ₹{new_current} value")
+                                print(f"   Result: OVERRIDE with import data")
+                            else:
+                                # Merge: Add to existing values
+                                current_units = float(existing_data.get('units', 0))
+                                current_invested = float(existing_data.get('investedAmount', 0))
+                                current_value = float(existing_data.get('currentValue', 0))
+                                
+                                new_units = current_units + float(stock['units'])
+                                new_invested = current_invested + float(stock['investedAmount'])
+                                # Recalculate current value using current price and total units
+                                current_price = float(stock['price'])  # Use the current market price from import
+                                new_current = new_units * current_price
+                                
+                                print(f"🔢 Merging existing holding for {stock.get('name', 'Unknown')} (different brokers: {existing_broker} + {broker}):")
+                                print(f"   Current: {current_units} units, ₹{current_invested} invested, ₹{current_value} value")
+                                print(f"   Import: {stock['units']} units, ₹{stock['investedAmount']} invested, ₹{stock['currentValue']} value")
+                                print(f"   Result: {new_units} units, ₹{new_invested} invested, ₹{new_current} value (price: ₹{current_price})")
                             
-                            print(f"🔢 Merging calculation for {stock.get('name', 'Unknown')}:")
-                            print(f"   Current: {current_units} units, ₹{current_invested} invested, ₹{current_value} value")
-                            print(f"   Import: {stock['units']} units, ₹{stock['investedAmount']} invested, ₹{stock['currentValue']} value")
-                            print(f"   Result: {new_units} units, ₹{new_invested} invested, ₹{new_current} value (price: ₹{current_price})")
                             now = datetime.utcnow().isoformat()
                             
                             # Get standardized company name if ISIN is available
