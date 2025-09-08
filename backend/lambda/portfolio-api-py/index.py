@@ -169,11 +169,8 @@ def _store_holding_unified(user_id, holding_data, source="ui"):
         holding_id = holding_data.get('id', str(uuid.uuid4()))
         now = datetime.utcnow().isoformat()
         
-        # Handle broker correctly
+        # Handle broker correctly - use the broker from the form data
         broker = holding_data.get('broker', 'manual')
-        if source == "ui" and broker == "manual":
-            # For UI entries, use the actual broker from the form
-            broker = holding_data.get('actual_broker', 'manual')
         
         # Try to get ISIN if not provided
         isin = holding_data.get('isin', '')
