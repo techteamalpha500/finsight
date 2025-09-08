@@ -1013,10 +1013,10 @@ def handler(event, context):
                                 'symbol': stock['symbol'],
                                 'isin': stock.get('isin', ''),  # Add ISIN if available
                                 'sector': stock.get('sector', ''),  # Add sector if available
-                                'units': stock['units'],
-                                'price': stock['price'],
-                                'investedAmount': stock['investedAmount'],
-                                'currentValue': stock['currentValue'],
+                                'units': Decimal(str(stock['units'])),
+                                'price': Decimal(str(stock['price'])),
+                                'investedAmount': Decimal(str(stock['investedAmount'])),
+                                'currentValue': Decimal(str(stock['currentValue'])),
                                 'asset_class': 'Stocks',
                                 'portfolio_role': 'Equity',
                                 'created_at': now,
