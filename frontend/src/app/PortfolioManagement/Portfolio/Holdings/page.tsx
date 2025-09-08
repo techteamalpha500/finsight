@@ -889,18 +889,16 @@ export default function HoldingsPage() {
 			return false;
 		}
 		
-		// Convert lowercase broker to capitalized format key
-		const brokerKey = selectedBroker.charAt(0).toUpperCase() + selectedBroker.slice(1);
-		console.log(`🔍 Looking for format with key: ${brokerKey}`);
+		console.log(`🔍 Looking for format with key: ${selectedBroker}`);
 		
-		const format = brokerFileFormats[brokerKey as keyof typeof brokerFileFormats];
+		const format = brokerFileFormats[selectedBroker as keyof typeof brokerFileFormats];
 		if (!format) {
-			console.log(`❌ No format found for broker: ${brokerKey}`);
+			console.log(`❌ No format found for broker: ${selectedBroker}`);
 			return false;
 		}
 		
 		const acceptedTypes = format.accept.split(',').map(type => type.trim());
-		console.log(`🔍 Accepted types for ${brokerKey}:`, acceptedTypes);
+		console.log(`🔍 Accepted types for ${selectedBroker}:`, acceptedTypes);
 		
 		// Check file extension
 		const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -935,7 +933,7 @@ export default function HoldingsPage() {
 				// Auto-detect broker from filename
 				const detectedBroker = extractBrokerFromFilename(file.name);
 				if (detectedBroker !== 'Other') {
-					setForm({ ...form, broker: detectedBroker.toLowerCase() });
+					setForm({ ...form, broker: detectedBroker });
 				}
 			} else {
 				const currentFormat = brokerFileFormats[form.broker as keyof typeof brokerFileFormats];
@@ -953,7 +951,7 @@ export default function HoldingsPage() {
 				// Auto-detect broker from filename
 				const detectedBroker = extractBrokerFromFilename(file.name);
 				if (detectedBroker !== 'Other') {
-					setForm({ ...form, broker: detectedBroker.toLowerCase() });
+					setForm({ ...form, broker: detectedBroker });
 				}
 			} else {
 				const currentFormat = brokerFileFormats[form.broker as keyof typeof brokerFileFormats];
@@ -1550,7 +1548,7 @@ export default function HoldingsPage() {
 														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
 													>
 														{brokers.map((brokerOption) => (
-															<option key={brokerOption} value={brokerOption.toLowerCase()}>
+															<option key={brokerOption} value={brokerOption}>
 																{brokerOption}
 															</option>
 														))}
@@ -1558,7 +1556,7 @@ export default function HoldingsPage() {
 												</div>
 
 												{/* CAS Password - Only show for Other broker */}
-												{form.broker === 'other' && (
+												{form.broker === 'Other' && (
 													<div>
 														<label className="block text-sm font-medium text-foreground mb-2">
 															Password
@@ -1584,7 +1582,7 @@ export default function HoldingsPage() {
 											{/* Right Column: File Upload */}
 											<div>
 												<label className="block text-sm font-medium text-foreground mb-2">
-													{brokerFileFormats[form.broker.charAt(0).toUpperCase() + form.broker.slice(1) as keyof typeof brokerFileFormats]?.label || "File"}
+													{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.label || "File"}
 												</label>
 												<div
 													className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
@@ -1599,7 +1597,7 @@ export default function HoldingsPage() {
 													<input
 														ref={fileInputRef}
 														type="file"
-														accept={brokerFileFormats[form.broker.charAt(0).toUpperCase() + form.broker.slice(1) as keyof typeof brokerFileFormats]?.accept || "*"}
+														accept={brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "*"}
 														onChange={handleFileSelect}
 														className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
 														disabled={isProcessing}
@@ -1628,7 +1626,7 @@ export default function HoldingsPage() {
 																Drop file or click
 															</div>
 															<div className="text-xs text-muted-foreground">
-																{brokerFileFormats[form.broker.charAt(0).toUpperCase() + form.broker.slice(1) as keyof typeof brokerFileFormats]?.accept || "Any file"}
+																{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "Any file"}
 															</div>
 														</div>
 													)}
@@ -1686,7 +1684,7 @@ export default function HoldingsPage() {
 											
 											<button
 												type="submit"
-												disabled={!selectedFile || (form.broker === 'other' && !password.trim()) || isProcessing}
+												disabled={!selectedFile || (form.broker === 'Other' && !password.trim()) || isProcessing}
 												className="min-w-[140px] px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 											>
 												{isProcessing ? "Processing..." : "Import Holdings"}

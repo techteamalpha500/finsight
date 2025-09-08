@@ -645,103 +645,81 @@ const IMPORT_STOCKS_API_URL = process.env.NEXT_PUBLIC_IMPORT_STOCKS_API_URL || '
 
 // CAS Import API function - Parse file
 export async function parseCASFile(file: File, password: string, broker: string): Promise<any> {
-  try {
-    // Check if API URL is configured
-    if (IMPORT_STOCKS_API_URL.includes('your-import-stocks-api-gateway-url')) {
-      console.warn('⚠️ Import Stocks API URL not configured. Using mock data for development.');
-      return getMockCASData(broker);
-    }
-
-    // Convert file to base64
-    const fileContent = await fileToBase64(file);
-    
-    // Get file extension
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    
-    const response = await fetch(`${IMPORT_STOCKS_API_URL}/parse-cas`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        broker,
-        file_content: fileContent,
-        password,
-        file_extension: fileExtension
-      })
-    });
-
-    console.log('API Response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error response:', errorText);
-      try {
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      } catch (parseError) {
-        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-      }
-    }
-
-    const result = await response.json();
-    console.log('CAS parsing successful:', result);
-    return result.data; // Return the parsed CAS data
-  } catch (error) {
-    console.error('CAS parsing API error:', error);
-    // Fallback to mock data for development
-    console.warn('⚠️ API call failed. Using mock data for development.');
-    return getMockCASData(broker);
+  if (!IMPORT_STOCKS_API_URL) {
+    throw new Error('Import Stocks API URL not configured');
   }
+
+  // Convert file to base64
+  const fileContent = await fileToBase64(file);
+  
+  // Get file extension
+  const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+  
+  const response = await fetch(`${IMPORT_STOCKS_API_URL}/parse-cas`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      broker,
+      file_content: fileContent,
+      password,
+      file_extension: fileExtension
+    })
+  });
+
+  console.log('API Response status:', response.status);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('API Error response:', errorText);
+    try {
+      const errorData = JSON.parse(errorText);
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    } catch (parseError) {
+      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+    }
+  }
+
+  const result = await response.json();
+  console.log('CAS parsing successful:', result);
+  return result.data; // Return the parsed CAS data
 }
 
 // CAS Import API function - Import parsed data to holdings
 export async function importCASData(casData: any): Promise<any> {
-  try {
-    console.log('🔍 importCASData called with:', casData);
-    console.log('🔍 PORTFOLIO_API_URL:', PORTFOLIO_API_URL);
-    
-    // Check if API URL is configured
-    if (PORTFOLIO_API_URL.includes('your-portfolio-api-gateway-url')) {
-      console.warn('⚠️ Portfolio API URL not configured. Using mock import for development.');
-      return getMockImportResult(casData);
-    }
-
-    console.log('🚀 Calling import API with data:', JSON.stringify(casData, null, 2));
-    const response = await fetch(`${PORTFOLIO_API_URL}/holdings/import`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(casData)
-    });
-
-    console.log('Import API Response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Import API Error response:', errorText);
-      try {
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      } catch (parseError) {
-        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-      }
-    }
-
-    const result = await response.json();
-    console.log('CAS import successful:', result);
-    return result;
-  } catch (error) {
-    console.error('CAS import API error:', error);
-    // Fallback to mock data for development
-    console.warn('⚠️ API call failed. Using mock import for development.');
-    return getMockImportResult(casData);
+  if (!PORTFOLIO_API_URL) {
+    throw new Error('Portfolio API URL not configured');
   }
+
+  console.log('🔍 importCASData called with:', casData);
+  console.log('🔍 PORTFOLIO_API_URL:', PORTFOLIO_API_URL);
+
+  console.log('🚀 Calling import API with data:', JSON.stringify(casData, null, 2));
+  const response = await fetch(`${PORTFOLIO_API_URL}/holdings/import`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(casData)
+  });
+
+  console.log('Import API Response status:', response.status);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Import API Error response:', errorText);
+    try {
+      const errorData = JSON.parse(errorText);
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    } catch (parseError) {
+      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+    }
+  }
+
+  const result = await response.json();
+  console.log('CAS import successful:', result);
+  return result;
 }
 
 // Helper function to convert file to base64
@@ -757,56 +735,4 @@ function fileToBase64(file: File): Promise<string> {
     };
     reader.onerror = error => reject(error);
   });
-}
-
-// Mock data functions for development when API is not available
-function getMockCASData(broker: string): any {
-  console.log(`📊 Generating mock CAS data for broker: ${broker}`);
-  
-  const mockStocks = [
-    {
-      name: "Reliance Industries Ltd",
-      symbol: "RELIANCE",
-      units: 10,
-      price: 2500.00,
-      currentValue: 25000.00,
-      investedAmount: 24000.00
-    },
-    {
-      name: "TCS Ltd",
-      symbol: "TCS",
-      units: 5,
-      price: 3500.00,
-      currentValue: 17500.00,
-      investedAmount: 17000.00
-    },
-    {
-      name: "HDFC Bank Ltd",
-      symbol: "HDFCBANK",
-      units: 20,
-      price: 1500.00,
-      currentValue: 30000.00,
-      investedAmount: 29000.00
-    }
-  ];
-
-  return {
-    broker,
-    stocks: mockStocks,
-    totalValue: mockStocks.reduce((sum, stock) => sum + stock.currentValue, 0),
-    totalInvested: mockStocks.reduce((sum, stock) => sum + stock.investedAmount, 0)
-  };
-}
-
-function getMockImportResult(casData: any): any {
-  console.log('📊 Generating mock import result');
-  
-  const stockCount = casData.stocks ? casData.stocks.length : 0;
-  
-  return {
-    message: `Successfully imported ${stockCount} stocks from ${casData.broker}`,
-    imported: stockCount,
-    updated: 0,
-    errors: []
-  };
 }
