@@ -156,7 +156,7 @@ export default function HoldingsPage() {
 		investedAmount: "",
 		currentValue: "",
 		propertyType: "",
-		broker: "manual" // Default to manual entry
+		broker: "zerodha" // Default to zerodha for manual entry
 	});
 	
 
@@ -593,7 +593,7 @@ export default function HoldingsPage() {
 				investedAmount: originalForm.investedAmount?.toString() || "",
 				currentValue: originalForm.currentValue?.toString() || "",
 				propertyType: (originalForm as any).propertyType || "",
-				broker: (originalForm as any).broker || "manual"
+				broker: (originalForm as any).broker || "zerodha"
 			};
 			setForm(formData);
 			setMfSearchTerm(originalForm.name);
