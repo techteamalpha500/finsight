@@ -120,8 +120,6 @@ export default function HoldingsPage() {
 	// Breakdown state - store breakdown data per holding
 	const [holdingsWithBreakdown, setHoldingsWithBreakdown] = useState<Set<string>>(new Set());
 	
-	// Tab state
-	const [activeTab, setActiveTab] = useState<'data' | 'insights'>('data');
 	
 	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1);
@@ -1014,29 +1012,6 @@ export default function HoldingsPage() {
 				</div>
 			</div>
 			
-			{/* Tab Navigation */}
-			<div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg w-fit">
-				<button
-					onClick={() => setActiveTab('data')}
-					className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-						activeTab === 'data' 
-							? 'bg-background text-foreground shadow-sm' 
-							: 'text-muted-foreground hover:text-foreground'
-					}`}
-				>
-					Data
-				</button>
-				<button
-					onClick={() => setActiveTab('insights')}
-					className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-						activeTab === 'insights' 
-							? 'bg-background text-foreground shadow-sm' 
-							: 'text-muted-foreground hover:text-foreground'
-					}`}
-				>
-					Insights
-				</button>
-			</div>
 			
 			{/* KPI Row */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1098,11 +1073,9 @@ export default function HoldingsPage() {
 				</PlanCard>
 			</div>
 
-			{/* Tab Content */}
-			{activeTab === 'data' ? (
-				/* Data Tab - Holdings Table */
-				<div className="mb-6">
-					<PlanCard>
+			{/* Holdings Table */}
+			<div className="mb-6">
+				<PlanCard>
 						<PlanCardHeader className="px-4 py-3 border-b border-border">
 							<PlanCardTitle className="text-sm font-medium flex items-center gap-2">
 								<BarChart3 size={16} />
@@ -1413,150 +1386,6 @@ export default function HoldingsPage() {
 					</PlanCardContent>
 				</PlanCard>
 				</div>
-			) : (
-				/* Insights Tab - Charts */
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-					{/* Asset Class Chart */}
-					<PlanCard>
-						<PlanCardHeader className="px-4 py-3 border-b border-border">
-							<PlanCardTitle className="text-sm font-medium flex items-center gap-2">
-								<PieChartIcon size={16} />
-								Asset Class
-							</PlanCardTitle>
-						</PlanCardHeader>
-						<PlanCardContent className="p-4">
-							{holdings && holdings.length > 0 ? (
-								<div className="space-y-4">
-									<div className="h-32 flex items-center justify-center">
-										<ResponsiveContainer width="100%" height="100%">
-											<PieChart>
-												<Pie
-													data={portfolioAllocationData}
-													cx="50%"
-													cy="50%"
-													innerRadius={20}
-													outerRadius={50}
-													paddingAngle={2}
-													dataKey="value"
-												>
-													{portfolioAllocationData.map((entry, index) => (
-														<Cell key={`cell-${index}`} fill={entry.color} />
-													))}
-												</Pie>
-												<Tooltip 
-													formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Value']}
-													labelFormatter={(label) => `${label}`}
-													contentStyle={{
-														backgroundColor: 'hsl(var(--card))',
-														border: '1px solid hsl(var(--border))',
-														borderRadius: '8px',
-														boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-													}}
-												/>
-											</PieChart>
-										</ResponsiveContainer>
-									</div>
-									
-									{/* Asset Class Summary */}
-									<div className="space-y-2">
-										{portfolioAllocationData.map((item, index) => (
-											<div key={index} className="flex items-center justify-between text-xs">
-												<div className="flex items-center gap-2">
-													<div 
-														className="w-2 h-2 rounded-full" 
-														style={{ backgroundColor: item.color }}
-													></div>
-													<span className="text-foreground font-medium">{item.name}</span>
-												</div>
-												<div className="text-muted-foreground font-medium">
-													{((item.value / totalValue) * 100).toFixed(1)}%
-												</div>
-											</div>
-										))}
-									</div>
-								</div>
-							) : (
-								<div className="text-center py-8 text-muted-foreground">
-									<div className="text-2xl mb-2">📊</div>
-									<div className="text-sm">No data to display</div>
-								</div>
-							)}
-						</PlanCardContent>
-					</PlanCard>
-
-					{/* Portfolio Role Chart - Bar Chart */}
-					<PlanCard>
-						<PlanCardHeader className="px-4 py-3 border-b border-border">
-							<PlanCardTitle className="text-sm font-medium flex items-center gap-2">
-								<BarChart3 size={16} />
-								Portfolio Role
-							</PlanCardTitle>
-						</PlanCardHeader>
-						<PlanCardContent className="p-4">
-							{holdings && holdings.length > 0 ? (
-								<div className="space-y-4">
-									<div className="h-32 flex items-center justify-center">
-										<ResponsiveContainer width="100%" height="100%">
-											<BarChart data={portfolioRoleData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-												<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-												<XAxis 
-													dataKey="name" 
-													tick={{ fontSize: 10 }}
-													axisLine={false}
-													tickLine={false}
-												/>
-												<YAxis 
-													tick={{ fontSize: 10 }}
-													axisLine={false}
-													tickLine={false}
-													tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
-												/>
-												<Tooltip 
-													formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Value']}
-													contentStyle={{
-														backgroundColor: 'hsl(var(--card))',
-														border: '1px solid hsl(var(--border))',
-														borderRadius: '8px',
-														boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-													}}
-												/>
-												<Bar dataKey="value" radius={[2, 2, 0, 0]} xAxisId={0}>
-													{portfolioRoleData.map((entry, index) => (
-														<Cell key={`cell-${index}`} fill={entry.color} />
-													))}
-												</Bar>
-											</BarChart>
-										</ResponsiveContainer>
-									</div>
-									
-									{/* Portfolio Role Summary */}
-									<div className="space-y-2">
-										{portfolioRoleData.map((item, index) => (
-											<div key={index} className="flex items-center justify-between text-xs">
-												<div className="flex items-center gap-2">
-													<div 
-														className="w-2 h-2 rounded-full" 
-														style={{ backgroundColor: item.color }}
-													></div>
-													<span className="text-foreground font-medium">{item.name}</span>
-												</div>
-												<div className="text-muted-foreground font-medium">
-													{((item.value / totalValue) * 100).toFixed(1)}%
-												</div>
-											</div>
-										))}
-									</div>
-								</div>
-							) : (
-								<div className="text-center py-8 text-muted-foreground">
-									<div className="text-2xl mb-2">📊</div>
-									<div className="text-sm">No data to display</div>
-								</div>
-							)}
-						</PlanCardContent>
-					</PlanCard>
-				</div>
-			)}
 
 			{/* Add/Edit Modal */}
 			{isModalOpen && (
