@@ -127,11 +127,6 @@ def _find_existing_holding(user_id, stock, import_broker=None):
         all_holdings = scan_response.get('Items', [])
         print(f"🔍 Found {len(all_holdings)} total holdings for user")
         
-        # Debug: Print all existing holdings
-        for i, h in enumerate(all_holdings):
-            h_data = h.get('data', {})
-            print(f"   Existing {i+1}: {h_data.get('name', 'Unknown')} (broker: '{h_data.get('broker', 'None')}', isin: '{h_data.get('isin', 'None')}', symbol: '{h_data.get('symbol', 'None')}')")
-        
         # Look for matching holdings
         for holding in all_holdings:
             holding_data = holding.get('data', {})
@@ -145,12 +140,6 @@ def _find_existing_holding(user_id, stock, import_broker=None):
             broker_match = existing_broker.lower() == import_broker.lower() if import_broker else True
             isin_match = stock.get('isin') and existing_isin and stock['isin'] == existing_isin
             symbol_match = stock.get('symbol') and existing_symbol and stock['symbol'].upper() == existing_symbol.upper()
-            
-            print(f"   🔍 Match details:")
-            print(f"      Broker match: {broker_match} (existing: '{existing_broker}' vs input: '{import_broker}')")
-            print(f"      ISIN match: {isin_match} (existing: '{existing_isin}' vs input: '{stock.get('isin')}')")
-            print(f"      Symbol match: {symbol_match} (existing: '{existing_symbol}' vs input: '{stock.get('symbol')}')")
-            print(f"      Final match: {broker_match and (isin_match or symbol_match)}")
             
             if broker_match and (isin_match or symbol_match):
                 print(f"✅ Match found: {holding_data.get('name', 'Unknown')} (Broker: {existing_broker}, ISIN: {isin_match}, Symbol: {symbol_match})")
@@ -398,13 +387,6 @@ def handler(event, context):
                 user_id = holding.get("user_id", user_sub)
                 
                 # Check if existing holding exists for UI entry (should merge, not override)
-                print(f"🔍 UI Entry Debug - Looking for existing holding:")
-                print(f"   Holding data: {holding}")
-                print(f"   Broker: '{holding.get('broker')}'")
-                print(f"   Symbol: '{holding.get('symbol')}'")
-                print(f"   ISIN: '{holding.get('isin')}'")
-                print(f"   Name: '{holding.get('name')}'")
-                
                 existing_holding = _find_existing_holding(user_id, holding, holding.get('broker'))
                 
                 if existing_holding:
