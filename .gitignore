@@ -36,13 +36,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Env
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
 # IDE
 .vscode/
 .idea/
@@ -68,6 +61,9 @@ terraform/python/
 terraform/*.zip
 terraform/tfplan
 terraform/README_OLD.md
+terraform/import_stocks/
+terraform/portfolio_api_build/
+terraform/portfolio_build/
 
 # Lambda build artifacts
 **/lambda_build/
