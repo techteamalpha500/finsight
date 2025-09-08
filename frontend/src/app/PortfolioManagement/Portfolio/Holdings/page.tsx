@@ -889,14 +889,18 @@ export default function HoldingsPage() {
 			return false;
 		}
 		
-		const format = brokerFileFormats[selectedBroker as keyof typeof brokerFileFormats];
+		// Convert lowercase broker to capitalized format key
+		const brokerKey = selectedBroker.charAt(0).toUpperCase() + selectedBroker.slice(1);
+		console.log(`🔍 Looking for format with key: ${brokerKey}`);
+		
+		const format = brokerFileFormats[brokerKey as keyof typeof brokerFileFormats];
 		if (!format) {
-			console.log(`❌ No format found for broker: ${selectedBroker}`);
+			console.log(`❌ No format found for broker: ${brokerKey}`);
 			return false;
 		}
 		
 		const acceptedTypes = format.accept.split(',').map(type => type.trim());
-		console.log(`🔍 Accepted types for ${selectedBroker}:`, acceptedTypes);
+		console.log(`🔍 Accepted types for ${brokerKey}:`, acceptedTypes);
 		
 		// Check file extension
 		const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -1533,51 +1537,54 @@ export default function HoldingsPage() {
 								{/* Import Mode Form */}
 								{entryMode === 'import' ? (
 									<form onSubmit={submitForm} className="space-y-6">
-										{/* Broker Selection */}
-										<div>
-											<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
-											<select
-												value={form.broker}
-												onChange={(e) => setForm({ ...form, broker: e.target.value })}
-												className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-											>
-												{brokers.map((brokerOption) => (
-													<option key={brokerOption} value={brokerOption.toLowerCase()}>
-														{brokerOption}
-													</option>
-												))}
-											</select>
-										</div>
-
-										{/* Password and File Upload in Same Row */}
+										{/* Broker/Password and File Upload in Same Row */}
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											{/* CAS Password - Left Side */}
-											{form.broker === 'other' && (
+											{/* Left Column: Broker and CAS Password */}
+											<div className="space-y-4">
+												{/* Broker Selection */}
 												<div>
-													<label className="block text-sm font-medium text-foreground mb-2">
-														Password
-													</label>
-													<div className="relative">
-														<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-														<input
-															type="password"
-															value={password}
-															onChange={(e) => setPassword(e.target.value)}
-															placeholder="Enter CAS password"
-															className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm text-foreground"
-															disabled={isProcessing}
-														/>
-													</div>
-													<div className="text-xs text-muted-foreground mt-1">
-														Password used to protect your CAS file
-													</div>
+													<label className="block text-sm font-medium text-foreground mb-2">Broker</label>
+													<select
+														value={form.broker}
+														onChange={(e) => setForm({ ...form, broker: e.target.value })}
+														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														{brokers.map((brokerOption) => (
+															<option key={brokerOption} value={brokerOption.toLowerCase()}>
+																{brokerOption}
+															</option>
+														))}
+													</select>
 												</div>
-											)}
 
-											{/* File Upload - Right Side */}
+												{/* CAS Password - Only show for Other broker */}
+												{form.broker === 'other' && (
+													<div>
+														<label className="block text-sm font-medium text-foreground mb-2">
+															Password
+														</label>
+														<div className="relative">
+															<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+															<input
+																type="password"
+																value={password}
+																onChange={(e) => setPassword(e.target.value)}
+																placeholder="Enter CAS password"
+																className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm text-foreground"
+																disabled={isProcessing}
+															/>
+														</div>
+														<div className="text-xs text-muted-foreground mt-1">
+															Password used to protect your CAS file
+														</div>
+													</div>
+												)}
+											</div>
+
+											{/* Right Column: File Upload */}
 											<div>
 												<label className="block text-sm font-medium text-foreground mb-2">
-													{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.label || "File"}
+													{brokerFileFormats[form.broker.charAt(0).toUpperCase() + form.broker.slice(1) as keyof typeof brokerFileFormats]?.label || "File"}
 												</label>
 												<div
 													className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
@@ -1592,7 +1599,7 @@ export default function HoldingsPage() {
 													<input
 														ref={fileInputRef}
 														type="file"
-														accept={brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "*"}
+														accept={brokerFileFormats[form.broker.charAt(0).toUpperCase() + form.broker.slice(1) as keyof typeof brokerFileFormats]?.accept || "*"}
 														onChange={handleFileSelect}
 														className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
 														disabled={isProcessing}
@@ -1621,7 +1628,7 @@ export default function HoldingsPage() {
 																Drop file or click
 															</div>
 															<div className="text-xs text-muted-foreground">
-																{brokerFileFormats[form.broker as keyof typeof brokerFileFormats]?.accept || "Any file"}
+																{brokerFileFormats[form.broker.charAt(0).toUpperCase() + form.broker.slice(1) as keyof typeof brokerFileFormats]?.accept || "Any file"}
 															</div>
 														</div>
 													)}
