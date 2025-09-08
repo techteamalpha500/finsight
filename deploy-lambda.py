@@ -818,17 +818,32 @@ def deploy_specific_function(function_num):
     
     print(f"🚀 Deploying {func_info['name']} with Terraform...")
     
-    # Initialize Terraform
-    run_command(["terraform", "init"])
+    # Change to terraform directory
+    original_dir = os.getcwd()
+    terraform_dir = Path("terraform")
+    if not terraform_dir.exists():
+        print(f"❌ Terraform directory not found: {terraform_dir}")
+        return False
     
-    # Plan deployment
-    run_command(["terraform", "plan", f"-target={func_info['terraform_target']}"])
+    os.chdir(terraform_dir)
+    print(f"📁 Changed to directory: {terraform_dir}")
     
-    # Apply deployment
-    run_command(["terraform", "apply", f"-target={func_info['terraform_target']}", "-auto-approve"])
-    
-    print(f"✅ {func_info['name']} deployed successfully!")
-    return True
+    try:
+        # Initialize Terraform
+        run_command(["terraform", "init"])
+        
+        # Plan deployment
+        run_command(["terraform", "plan", f"-target={func_info['terraform_target']}"])
+        
+        # Apply deployment
+        run_command(["terraform", "apply", f"-target={func_info['terraform_target']}", "-auto-approve"])
+        
+        print(f"✅ {func_info['name']} deployed successfully!")
+        return True
+    finally:
+        # Always return to original directory
+        os.chdir(original_dir)
+        print(f"📁 Returned to directory: {original_dir}")
 
 def main():
     """Main deployment function"""
