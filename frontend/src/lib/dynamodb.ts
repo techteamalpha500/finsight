@@ -661,7 +661,7 @@ export async function parseCASFile(file: File, password: string, broker: string)
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      broker,
+      broker: broker.charAt(0).toUpperCase() + broker.slice(1),
       file_content: fileContent,
       password,
       file_extension: fileExtension

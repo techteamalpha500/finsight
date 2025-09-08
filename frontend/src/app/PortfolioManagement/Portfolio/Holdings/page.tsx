@@ -847,31 +847,31 @@ export default function HoldingsPage() {
 
 	// Define supported file formats for each broker
 	const brokerFileFormats = {
-		"Other": {
+		"other": {
 			label: "CAS File",
 			description: "Upload your Consolidated Account Statement (CAS)",
 			accept: ".pdf",
 			helpText: "CAS (Consolidated Account Statement) is a document that contains all your holdings across different brokers."
 		},
-		"Zerodha": {
+		"zerodha": {
 			label: "Zerodha Holdings File",
 			description: "Upload your Zerodha holdings export file",
 			accept: ".csv,.xlsx,.pdf",
 			helpText: "Export your holdings from Zerodha Console as CSV/Excel or upload your CAS file."
 		},
-		"Groww": {
+		"groww": {
 			label: "Groww Holdings File", 
 			description: "Upload your Groww holdings export file",
 			accept: ".csv,.xlsx,.pdf",
 			helpText: "Export your holdings from Groww app as CSV/Excel or upload your CAS file."
 		},
-		"Upstox": {
+		"upstox": {
 			label: "Upstox Holdings File",
 			description: "Upload your Upstox holdings export file", 
 			accept: ".csv,.xlsx,.pdf",
 			helpText: "Export your holdings from Upstox Pro as CSV/Excel or upload your CAS file."
 		},
-		"Angel": {
+		"angel": {
 			label: "Angel Holdings File",
 			description: "Upload your Angel holdings export file",
 			accept: ".csv,.xlsx,.pdf", 
@@ -889,16 +889,18 @@ export default function HoldingsPage() {
 			return false;
 		}
 		
-		console.log(`🔍 Looking for format with key: ${selectedBroker}`);
+		// Normalize broker to lowercase for consistent lookup
+		const normalizedBroker = selectedBroker.toLowerCase();
+		console.log(`🔍 Looking for format with key: ${normalizedBroker}`);
 		
-		const format = brokerFileFormats[selectedBroker as keyof typeof brokerFileFormats];
+		const format = brokerFileFormats[normalizedBroker as keyof typeof brokerFileFormats];
 		if (!format) {
-			console.log(`❌ No format found for broker: ${selectedBroker}`);
+			console.log(`❌ No format found for broker: ${normalizedBroker}`);
 			return false;
 		}
 		
 		const acceptedTypes = format.accept.split(',').map(type => type.trim());
-		console.log(`🔍 Accepted types for ${selectedBroker}:`, acceptedTypes);
+		console.log(`🔍 Accepted types for ${normalizedBroker}:`, acceptedTypes);
 		
 		// Check file extension
 		const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -1548,7 +1550,7 @@ export default function HoldingsPage() {
 														className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
 													>
 														{brokers.map((brokerOption) => (
-															<option key={brokerOption} value={brokerOption}>
+															<option key={brokerOption} value={brokerOption.toLowerCase()}>
 																{brokerOption}
 															</option>
 														))}
@@ -1556,7 +1558,7 @@ export default function HoldingsPage() {
 												</div>
 
 												{/* CAS Password - Only show for Other broker */}
-												{form.broker === 'Other' && (
+												{form.broker === 'other' && (
 													<div>
 														<label className="block text-sm font-medium text-foreground mb-2">
 															Password
@@ -1684,7 +1686,7 @@ export default function HoldingsPage() {
 											
 											<button
 												type="submit"
-												disabled={!selectedFile || (form.broker === 'Other' && !password.trim()) || isProcessing}
+												disabled={!selectedFile || (form.broker === 'other' && !password.trim()) || isProcessing}
 												className="min-w-[140px] px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 											>
 												{isProcessing ? "Processing..." : "Import Holdings"}
