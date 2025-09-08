@@ -597,7 +597,7 @@ export default function HoldingsPage() {
 			setMfSearchTerm(originalForm.name);
 		} else {
 			// If adding new, reset to empty form
-			setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "", broker: "manual" });
+			setForm({ instrumentClass: "Stocks", name: "", symbol: "", units: "", price: "", investedAmount: "", currentValue: "", propertyType: "", broker: "zerodha" });
 			// Reset stock functionality
 			setStockSearchTerm("");
 			setSelectedStock(null);

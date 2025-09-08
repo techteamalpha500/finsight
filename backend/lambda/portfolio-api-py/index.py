@@ -269,8 +269,27 @@ def _store_holding_unified(user_id, holding_data, source="ui"):
         holding_id = holding_data.get('id', str(uuid.uuid4()))
         now = datetime.utcnow().isoformat()
         
-        # Ensure broker field exists
+        # Handle broker correctly
         broker = holding_data.get('broker', 'manual')
+        if source == "ui" and broker == "manual":
+            # For UI entries, use the actual broker from the form
+            broker = holding_data.get('actual_broker', 'manual')
+        
+        # Try to get ISIN if not provided
+        isin = holding_data.get('isin', '')
+        if not isin and holding_data.get('symbol'):
+            # Try to find ISIN by symbol
+            try:
+                response = stock_companies_table.scan(
+                    FilterExpression='symbol = :symbol',
+                    ExpressionAttributeValues={':symbol': holding_data['symbol']}
+                )
+                items = response.get('Items', [])
+                if items:
+                    isin = items[0].get('isinNumber', items[0].get('isin', ''))
+                    print(f"🔍 Found ISIN {isin} for symbol {holding_data['symbol']}")
+            except Exception as e:
+                print(f"Could not find ISIN for symbol {holding_data.get('symbol')}: {e}")
         
         # Create standardized holding structure
         holding_item = {
@@ -283,7 +302,7 @@ def _store_holding_unified(user_id, holding_data, source="ui"):
                 'instrumentClass': holding_data.get('instrumentClass', 'Stocks'),
                 'name': holding_data.get('name', ''),
                 'symbol': holding_data.get('symbol', ''),
-                'isin': holding_data.get('isin', ''),
+                'isin': isin,
                 'sector': holding_data.get('sector', ''),
                 'units': holding_data.get('units', 0),
                 'price': holding_data.get('price', 0),
@@ -303,7 +322,7 @@ def _store_holding_unified(user_id, holding_data, source="ui"):
         }
         
         holdings_table.put_item(Item=holding_item)
-        print(f"✅ Stored holding: {holding_data.get('name', 'Unknown')} (Broker: {broker}, Source: {source})")
+        print(f"✅ Stored holding: {holding_data.get('name', 'Unknown')} (Broker: {broker}, ISIN: {isin}, Source: {source})")
         return holding_item
         
     except Exception as e:
@@ -464,33 +483,13 @@ def handler(event, context):
                 return _response(400, {"error": "Missing portfolioId or holding"})
             
             try:
-                holding_id = holding.get("id") or str(uuid.uuid4())
-                now = datetime.utcnow().isoformat()
-                
-                # Convert float values to Decimal types for DynamoDB compatibility
-                converted_holding = _convert_floats_to_decimals(holding)
-                
-                # Extract asset class and portfolio role from the holding data
-                instrument_class = converted_holding.get("instrumentClass", "Stocks")
-                asset_class = converted_holding.get("asset_class", instrument_class)
-                portfolio_role = converted_holding.get("portfolio_role", _get_portfolio_role_for_asset_class(asset_class))
-                
                 # Use the user_id from the holding data if available, otherwise use the JWT user
-                user_id = converted_holding.get("user_id", user_sub)
+                user_id = holding.get("user_id", user_sub)
                 
-                item = {
-                    "id": holding_id,
-                    "user_id": user_id,
-                    "portfolio_id": portfolio_id,
-                    "data": converted_holding,
-                    "asset_class": asset_class,
-                    "portfolio_role": portfolio_role,
-                    "created_at": now,
-                    "updated_at": now
-                }
+                # Use unified function to store holding
+                stored_holding = _store_holding_unified(user_id, holding, source="ui")
                 
-                holdings_table.put_item(Item=item)
-                return _response(200, {"holdingId": holding_id})
+                return _response(200, {"holdingId": stored_holding["id"]})
             except Exception as e:
                 return _response(500, {"error": f"Failed to create holding: {str(e)}"})
 
