@@ -254,10 +254,10 @@ export default function HoldingsPage() {
 				updated_at: dbHolding.updated_at
 			}));
 			
-			// Sort by created_at descending (newest first) and set holdings
+			// Sort by updated_at descending (most recently updated first) and set holdings
 			const sortedHoldings = transformedHoldings.sort((a, b) => {
-				const dateA = new Date(a.created_at || 0).getTime();
-				const dateB = new Date(b.created_at || 0).getTime();
+				const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+				const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
 				return dateB - dateA; // Descending order
 			});
 			
@@ -1125,6 +1125,9 @@ export default function HoldingsPage() {
 													<tr key={holding.id} className="border-t border-border/50">
 														<td className="py-2 px-3 font-medium">
 															<div className="text-foreground">{holding.name}</div>
+															{holding.symbol && (
+																<div className="text-xs text-muted-foreground mt-0.5">{holding.symbol}</div>
+															)}
 														</td>
 														<td className="py-2 px-3">
 															<div className="space-y-0.5">
