@@ -443,20 +443,20 @@ export default function RepaymentsPage() {
   }
 
   return (
-    <div className="max-w-full space-y-4 pl-2">
-      {/* Header - Exact same structure as Plan page */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-muted-foreground">Repayment Management</div>
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Repayments</h1>
+          <p className="text-sm text-muted-foreground mt-1">Track liabilities and optimize repayments</p>
         </div>
         <div className="flex items-center gap-2">
           <Button 
-            variant="outline" 
             size="sm" 
             leftIcon={<Plus className="h-4 w-4" />} 
             onClick={() => setShowAddForm(true)}
           >
-            Add Liability
+            Add liability
           </Button>
           <Button 
             variant="outline" 
@@ -466,16 +466,15 @@ export default function RepaymentsPage() {
               router.push('/PortfolioManagement/Portfolio/Repayments/smart-repayment');
             }}
           >
-            Smart Repayment
+            Smart repayment
           </Button>
-
         </div>
       </div>
 
       {/* Quick Stats - Same structure as Plan page */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Outstanding</p>
@@ -483,7 +482,7 @@ export default function RepaymentsPage() {
                   ₹{totalOutstanding.toLocaleString()}
                 </p>
               </div>
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-xl">
+              <div className="p-2.5 bg-red-100 dark:bg-red-900/20 rounded-lg">
                 <DollarSign className="w-5 h-5 text-red-600" />
               </div>
             </div>
@@ -491,7 +490,7 @@ export default function RepaymentsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Monthly EMI</p>
@@ -499,7 +498,7 @@ export default function RepaymentsPage() {
                   ₹{totalMonthlyEMI.toLocaleString()}
                 </p>
               </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                 <Clock className="w-5 h-5 text-blue-600" />
               </div>
             </div>
@@ -507,7 +506,7 @@ export default function RepaymentsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Interest Accrued</p>
@@ -515,7 +514,7 @@ export default function RepaymentsPage() {
                   ₹{totalInterestAccrued.toLocaleString()}
                 </p>
               </div>
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-xl">
+              <div className="p-2.5 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-yellow-600" />
               </div>
             </div>
@@ -523,7 +522,7 @@ export default function RepaymentsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Avg Interest Rate</p>
@@ -531,7 +530,7 @@ export default function RepaymentsPage() {
                   {avgInterestRate.toFixed(1)}%
                 </p>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-xl">
+              <div className="p-2.5 bg-green-100 dark:bg-green-900/20 rounded-lg">
                 <Target className="w-5 h-5 text-green-600" />
               </div>
             </div>
@@ -558,16 +557,16 @@ export default function RepaymentsPage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Your Liabilities</CardTitle>
+            <CardTitle>Your liabilities</CardTitle>
             <CardDescription>Manage and optimize your debt repayment strategy</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {liabilities.map((loan, index) => (
-                <div key={index} className="rounded-lg border border-border bg-card/60 backdrop-blur-sm p-4">
+                <div key={index} className="rounded-xl border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`p-3 rounded-xl ${loanColors[loan.loanCategory]} text-white shrink-0`}>
+                      <div className={`p-3 rounded-lg ${loanColors[loan.loanCategory]} text-white shrink-0`}>
                         {loanIcons[loan.loanCategory]}
                       </div>
                       <div className="min-w-0">

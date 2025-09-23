@@ -218,7 +218,7 @@ export default function SmartRepaymentPage() {
   }
 
   return (
-        <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
@@ -261,7 +261,7 @@ export default function SmartRepaymentPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Input Form */}
         <div className="space-y-4 sm:space-y-6 order-1">
           {/* Payment Mode Selection */}
@@ -273,7 +273,7 @@ export default function SmartRepaymentPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   className={`h-auto p-3 ${repaymentMode === 'monthly' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-foreground hover:bg-indigo-50 dark:hover:bg-indigo-950'}`}
@@ -310,7 +310,7 @@ export default function SmartRepaymentPage() {
                       <Input
                         type="number"
                         placeholder="Enter monthly extra amount"
-                        className="h-11 sm:h-12 rounded-xl border-2 focus:border-purple-500 text-base sm:text-lg"
+                        className="h-11 sm:h-12 rounded-xl border-2 focus:border-indigo-500 text-base sm:text-lg"
                         value={monthlyAmount}
                         onChange={(e) => setMonthlyAmount(e.target.value)}
                       />
@@ -330,7 +330,7 @@ export default function SmartRepaymentPage() {
                         <Input
                           type="number"
                           placeholder="Enter lump sum amount"
-                          className="h-11 sm:h-12 rounded-xl border-2 focus:border-purple-500 text-base sm:text-lg"
+                          className="h-11 sm:h-12 rounded-xl border-2 focus:border-emerald-500 text-base sm:text-lg"
                           value={lumpSumAmount}
                           onChange={(e) => setLumpSumAmount(e.target.value)}
                         />
@@ -342,7 +342,7 @@ export default function SmartRepaymentPage() {
                         </Label>
                         <Input
                           type="date"
-                          className="h-11 sm:h-12 rounded-xl border-2 focus:border-purple-500"
+                          className="h-11 sm:h-12 rounded-xl border-2 focus:border-emerald-500"
                           value={paymentDate}
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => setPaymentDate(e.target.value)}
@@ -406,42 +406,29 @@ export default function SmartRepaymentPage() {
                       </div>
                     )}
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                        <Card className="border-2 border-border bg-card">
-                          <CardContent className="p-4">
-                            <div className="flex flex-col items-center justify-center text-center min-h-[100px]">
-                              <div className="p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg mb-3">
-                                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">Outstanding</p>
-                              <p className="text-lg font-bold text-foreground">{formatCurrency(liveResult.currentOutstanding)}</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Card className="border-2 border-border bg-card">
-                          <CardContent className="p-4">
-                            <div className="flex flex-col items-center justify-center text-center min-h-[100px]">
-                              <div className="p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg mb-3">
-                                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">Time Left</p>
-                              <p className="text-lg font-bold text-foreground">{liveResult.currentMonthsRemaining} months</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Card className="border-2 border-border bg-card">
-                          <CardContent className="p-4">
-                            <div className="flex flex-col items-center justify-center text-center min-h-[100px]">
-                              <div className="p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg mb-3">
-                                <TrendingUp className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">Interest Rate</p>
-                              <p className="text-lg font-bold text-foreground">{liabilities.find(l => (l.id || liabilities.indexOf(l).toString()) === selectedLoanId)?.interest_rate || 'N/A'}%</p>
-                            </div>
-                          </CardContent>
-                        </Card>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[{
+                      label: 'Outstanding',
+                      value: formatCurrency(liveResult.currentOutstanding),
+                      icon: <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    },{
+                      label: 'Time Left',
+                      value: `${liveResult.currentMonthsRemaining} months`,
+                      icon: <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    },{
+                      label: 'Interest Rate',
+                      value: `${liabilities.find(l => (l.id || liabilities.indexOf(l).toString()) === selectedLoanId)?.interest_rate || 'N/A'}%`,
+                      icon: <TrendingUp className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    }].map((kpi, i) => (
+                      <div key={i} className="rounded-lg border border-border p-3 text-center">
+                        <div className="p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg inline-flex mb-2">
+                          {kpi.icon}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                        <p className="text-base font-semibold text-foreground">{kpi.value}</p>
                       </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -461,7 +448,7 @@ export default function SmartRepaymentPage() {
           {liveResult && (
             <>
               {/* KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <KPICard
                   icon={<PiggyBank className="w-5 h-5 text-green-600" />}
                   title="Interest Saved"
