@@ -443,110 +443,128 @@ export default function NetWorthPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Net Worth Tracker</h1>
           <p className="text-sm text-muted-foreground">Track your financial health and optimize your wealth</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button 
             onClick={() => handleAddItem('asset')}
-            className="bg-green-600 hover:bg-green-700 text-sm"
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <TrendingUp className="w-4 h-4 mr-2" />
+            <div className="p-1 rounded-md bg-green-500/20 mr-2">
+              <TrendingUp className="w-4 h-4" />
+            </div>
             Add Asset
           </Button>
           <Button 
             onClick={() => handleAddItem('liability')}
-            className="bg-red-600 hover:bg-red-700 text-sm"
+            className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <TrendingDown className="w-4 h-4 mr-2" />
+            <div className="p-1 rounded-md bg-red-500/20 mr-2">
+              <TrendingDown className="w-4 h-4" />
+            </div>
             Add Liability
           </Button>
         </div>
       </div>
 
       {/* Always Visible KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-3 sm:p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Total Assets</p>
-              <p className="text-lg sm:text-xl font-bold text-green-600">
+              <p className="text-xs text-muted-foreground">Total Assets</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
                 {formatCurrency(financialHealth.totalAssets)}
               </p>
             </div>
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+            <div className="p-2 rounded-lg bg-green-200 dark:bg-green-800/30">
+              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Total Liabilities</p>
-              <p className="text-lg sm:text-xl font-bold text-red-600">
+              <p className="text-xs text-muted-foreground">Total Liabilities</p>
+              <p className="text-lg font-bold text-red-600 dark:text-red-400">
                 {formatCurrency(financialHealth.totalLiabilities)}
               </p>
             </div>
-            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+            <div className="p-2 rounded-lg bg-red-200 dark:bg-red-800/30">
+              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Net Worth</p>
-              <p className={`text-lg sm:text-xl font-bold ${financialHealth.netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className="text-xs text-muted-foreground">Net Worth</p>
+              <p className={`text-lg font-bold ${financialHealth.netWorth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {formatCurrency(financialHealth.netWorth)}
               </p>
             </div>
-            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+            <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800/30">
+              <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Monthly Cash Flow</p>
-              <p className={`text-lg sm:text-xl font-bold ${financialHealth.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className="text-xs text-muted-foreground">Monthly Cash Flow</p>
+              <p className={`text-lg font-bold ${financialHealth.monthlyCashFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {formatCurrency(financialHealth.monthlyCashFlow)}
               </p>
             </div>
-            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+            <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800/30">
+              <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
           </div>
         </Card>
       </div>
 
       {/* Additional KPIs Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="p-3 sm:p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Debt-to-Asset Ratio</p>
-              <p className="text-lg sm:text-xl font-bold text-orange-600">
+              <p className="text-xs text-muted-foreground">Debt-to-Asset Ratio</p>
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
                 {financialHealth.debtToAssetRatio.toFixed(1)}%
               </p>
             </div>
-            <Target className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+            <div className="p-2 rounded-lg bg-orange-200 dark:bg-orange-800/30">
+              <Target className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Liquidity Ratio</p>
-              <p className="text-lg sm:text-xl font-bold text-blue-600">
+              <p className="text-xs text-muted-foreground">Liquidity Ratio</p>
+              <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
                 {financialHealth.liquidityRatio.toFixed(1)} months
               </p>
             </div>
-            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+            <div className="p-2 rounded-lg bg-cyan-200 dark:bg-cyan-800/30">
+              <Shield className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card className="p-4 border-0 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Monthly Debt Payments</p>
-              <p className="text-lg sm:text-xl font-bold text-red-600">
+              <p className="text-xs text-muted-foreground">Monthly Debt Payments</p>
+              <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
                 {formatCurrency(liabilities.reduce((sum, l) => sum + l.monthlyPayment, 0))}
               </p>
             </div>
-            <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+            <div className="p-2 rounded-lg bg-pink-200 dark:bg-pink-800/30">
+              <CreditCard className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+            </div>
           </div>
         </Card>
       </div>
@@ -582,7 +600,7 @@ export default function NetWorthPage() {
 
       {/* Assets Tab */}
       {activeTab === 'assets' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Assets by Category - Only show categories with items */}
           {Object.entries(
             assets.reduce((acc, asset) => {
@@ -591,88 +609,106 @@ export default function NetWorthPage() {
               return acc;
             }, {} as { [key: string]: Asset[] })
           ).map(([category, categoryAssets]) => (
-            <Card key={category} className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  {getCategoryIcon(category)}
-                  <h3 className="text-base font-semibold">
-                    {getCategoryDisplayName(category)}
-                  </h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {categoryAssets.length}
-                  </Badge>
+            <div key={category} className="space-y-3">
+              {/* Category Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+                    {getCategoryIcon(category)}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {getCategoryDisplayName(category)}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {categoryAssets.length} {categoryAssets.length === 1 ? 'item' : 'items'}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-sm font-bold text-green-600">
+                  <p className="text-sm font-bold text-green-600 dark:text-green-400">
                     {formatCurrency(categoryAssets.reduce((sum, asset) => sum + asset.value, 0))}
                   </p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Assets Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {categoryAssets.map(asset => (
-                  <div key={asset.id} className="relative p-3 border rounded-lg hover:shadow-md transition-all group bg-gradient-to-br from-green-50 to-white">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getTypeIcon(asset.type)}
+                  <Card key={asset.id} className="p-4 hover:shadow-lg transition-all duration-200 border-0 bg-card/50 backdrop-blur-sm">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20 flex-shrink-0">
+                          {getTypeIcon(asset.type)}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{asset.name}</p>
+                          <h4 className="font-semibold text-sm truncate text-foreground">{asset.name}</h4>
                           <p className="text-xs text-muted-foreground capitalize">
                             {asset.type.replace('-', ' ')}
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                      <div className="flex gap-1 ml-2">
+                        <button
                           onClick={() => handleEditAsset(asset)}
-                          className="h-6 w-6 p-0"
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          title="Edit asset"
                         >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteAsset(asset.id)}
-                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                          title="Delete asset"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                     
-                    <div className="space-y-1">
-                      <p className="font-bold text-green-600 text-sm">
-                        {formatCurrency(asset.value)}
-                      </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Value</span>
+                        <span className="font-bold text-green-600 dark:text-green-400">
+                          {formatCurrency(asset.value)}
+                        </span>
+                      </div>
                       {asset.monthlyIncome && (
-                        <p className="text-xs text-muted-foreground">
-                          +{formatCurrency(asset.monthlyIncome)}/mo
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Monthly Income</span>
+                          <span className="text-sm text-green-600 dark:text-green-400">
+                            +{formatCurrency(asset.monthlyIncome)}
+                          </span>
+                        </div>
                       )}
                       {asset.interestRate && (
-                        <p className="text-xs text-muted-foreground">
-                          {asset.interestRate}% p.a.
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Interest Rate</span>
+                          <span className="text-sm text-muted-foreground">
+                            {asset.interestRate}% p.a.
+                          </span>
+                        </div>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
-            </Card>
+            </div>
           ))}
 
           {/* Empty State */}
           {assets.length === 0 && (
-            <Card className="p-8 text-center">
-              <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Assets Added</h3>
-              <p className="text-muted-foreground mb-4">Start building your wealth by adding your first asset</p>
+            <Card className="p-12 text-center border-0 bg-card/50 backdrop-blur-sm">
+              <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/20 w-fit mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">No Assets Added</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Start building your wealth by adding your first asset. Track your investments, savings, and property.
+              </p>
               <Button 
                 onClick={() => handleAddItem('asset')}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Add Your First Asset
@@ -684,7 +720,7 @@ export default function NetWorthPage() {
 
       {/* Liabilities Tab */}
       {activeTab === 'liabilities' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Liabilities by Category - Only show categories with items */}
           {Object.entries(
             liabilities.reduce((acc, liability) => {
@@ -693,100 +729,122 @@ export default function NetWorthPage() {
               return acc;
             }, {} as { [key: string]: Liability[] })
           ).map(([category, categoryLiabilities]) => (
-            <Card key={category} className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  {getCategoryIcon(category)}
-                  <h3 className="text-base font-semibold">
-                    {getCategoryDisplayName(category)}
-                  </h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {categoryLiabilities.length}
-                  </Badge>
+            <div key={category} className="space-y-3">
+              {/* Category Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
+                    {getCategoryIcon(category)}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {getCategoryDisplayName(category)}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {categoryLiabilities.length} {categoryLiabilities.length === 1 ? 'item' : 'items'}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-sm font-bold text-red-600">
+                  <p className="text-sm font-bold text-red-600 dark:text-red-400">
                     {formatCurrency(categoryLiabilities.reduce((sum, l) => sum + l.remainingAmount, 0))}
                   </p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Liabilities Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {categoryLiabilities.map(liability => (
-                  <div key={liability.id} className="relative p-3 border rounded-lg hover:shadow-md transition-all group bg-gradient-to-br from-red-50 to-white">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getTypeIcon(liability.type)}
+                  <Card key={liability.id} className="p-4 hover:shadow-lg transition-all duration-200 border-0 bg-card/50 backdrop-blur-sm">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20 flex-shrink-0">
+                          {getTypeIcon(liability.type)}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{liability.name}</p>
+                          <h4 className="font-semibold text-sm truncate text-foreground">{liability.name}</h4>
                           <p className="text-xs text-muted-foreground capitalize">
                             {liability.type === 'EMI' ? 'EMI Loan' : 'Regular Debt'}
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                      <div className="flex gap-1 ml-2">
+                        <button
                           onClick={() => handleEditLiability(liability)}
-                          className="h-6 w-6 p-0"
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          title="Edit liability"
                         >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteLiability(liability.id)}
-                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                          title="Delete liability"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                     
-                    <div className="space-y-1">
-                      <p className="font-bold text-red-600 text-sm">
-                        {formatCurrency(liability.remainingAmount)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatCurrency(liability.monthlyPayment)}/mo
-                      </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Outstanding</span>
+                        <span className="font-bold text-red-600 dark:text-red-400">
+                          {formatCurrency(liability.remainingAmount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Monthly Payment</span>
+                        <span className="text-sm text-red-600 dark:text-red-400">
+                          {formatCurrency(liability.monthlyPayment)}
+                        </span>
+                      </div>
                       {liability.interestRate && (
-                        <p className="text-xs text-muted-foreground">
-                          {liability.interestRate}% p.a.
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Interest Rate</span>
+                          <span className="text-sm text-muted-foreground">
+                            {liability.interestRate}% p.a.
+                          </span>
+                        </div>
                       )}
                     </div>
 
                     {/* EMI Progress Bar */}
                     {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths && (
-                      <div className="mt-2 space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span>Progress</span>
-                          <span>{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} mo</span>
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="text-muted-foreground">
+                            {liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} mo
+                          </span>
                         </div>
-                        <Progress 
-                          value={((liability.totalMonths - liability.remainingMonths) / liability.totalMonths) * 100} 
-                          className="h-1.5"
-                        />
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div 
+                            className="bg-red-600 dark:bg-red-400 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${((liability.totalMonths - liability.remainingMonths) / liability.totalMonths) * 100}%` }}
+                          />
+                        </div>
                       </div>
                     )}
-                  </div>
+                  </Card>
                 ))}
               </div>
-            </Card>
+            </div>
           ))}
 
           {/* Empty State */}
           {liabilities.length === 0 && (
-            <Card className="p-8 text-center">
-              <TrendingDown className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Liabilities Added</h3>
-              <p className="text-muted-foreground mb-4">Track your debts and loans to better manage your finances</p>
+            <Card className="p-12 text-center border-0 bg-card/50 backdrop-blur-sm">
+              <div className="p-4 rounded-full bg-red-100 dark:bg-red-900/20 w-fit mx-auto mb-4">
+                <TrendingDown className="w-8 h-8 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">No Liabilities Added</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Track your debts and loans to better manage your finances and improve your financial health.
+              </p>
               <Button 
                 onClick={() => handleAddItem('liability')}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white"
               >
                 <TrendingDown className="w-4 h-4 mr-2" />
                 Add Your First Liability
