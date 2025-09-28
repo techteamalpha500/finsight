@@ -43,46 +43,77 @@ interface LiabilityFormProps {
 
 const liabilityCategories = [
   {
-    id: 'real-estate',
-    name: 'Real Estate',
+    id: 'mortgage',
+    name: 'Mortgage',
     icon: <Home className="w-5 h-5" />,
     types: [
-      { id: 'home-loan', name: 'Home Loan', icon: <Home className="w-4 h-4" /> },
-      { id: 'plot-loan', name: 'Plot Loan', icon: <Building2 className="w-4 h-4" /> },
-      { id: 'construction-loan', name: 'Construction Loan', icon: <Building2 className="w-4 h-4" /> }
+      { id: 'home-mortgage', name: 'Home Mortgage', icon: <Home className="w-4 h-4" /> },
+      { id: 'rental-mortgage', name: 'Rental Property Mortgage', icon: <Building2 className="w-4 h-4" /> },
+      { id: 'commercial-mortgage', name: 'Commercial Mortgage', icon: <Building2 className="w-4 h-4" /> }
     ]
   },
   {
-    id: 'personal',
-    name: 'Personal',
+    id: 'credit-cards',
+    name: 'Credit Cards',
     icon: <CreditCard className="w-5 h-5" />,
     types: [
-      { id: 'personal-loan', name: 'Personal Loan', icon: <CreditCard className="w-4 h-4" /> },
       { id: 'credit-card', name: 'Credit Card', icon: <CreditCard className="w-4 h-4" /> },
-      { id: 'education-loan', name: 'Education Loan', icon: <Landmark className="w-4 h-4" /> },
-      { id: 'medical-loan', name: 'Medical Loan', icon: <Landmark className="w-4 h-4" /> },
-      { id: 'wedding-loan', name: 'Wedding Loan', icon: <CreditCard className="w-4 h-4" /> }
+      { id: 'store-card', name: 'Store Card', icon: <CreditCard className="w-4 h-4" /> },
+      { id: 'business-card', name: 'Business Credit Card', icon: <CreditCard className="w-4 h-4" /> }
     ]
   },
   {
-    id: 'vehicle',
-    name: 'Vehicle',
+    id: 'student-loans',
+    name: 'Student Loans',
+    icon: <Landmark className="w-5 h-5" />,
+    types: [
+      { id: 'federal-student-loan', name: 'Federal Student Loan', icon: <Landmark className="w-4 h-4" /> },
+      { id: 'private-student-loan', name: 'Private Student Loan', icon: <Landmark className="w-4 h-4" /> },
+      { id: 'parent-plus-loan', name: 'Parent PLUS Loan', icon: <Landmark className="w-4 h-4" /> }
+    ]
+  },
+  {
+    id: 'auto-loans',
+    name: 'Auto Loans',
     icon: <Car className="w-5 h-5" />,
     types: [
       { id: 'car-loan', name: 'Car Loan', icon: <Car className="w-4 h-4" /> },
-      { id: 'bike-loan', name: 'Bike Loan', icon: <Car className="w-4 h-4" /> },
-      { id: 'commercial-vehicle', name: 'Commercial Vehicle Loan', icon: <Car className="w-4 h-4" /> }
+      { id: 'motorcycle-loan', name: 'Motorcycle Loan', icon: <Car className="w-4 h-4" /> },
+      { id: 'boat-loan', name: 'Boat Loan', icon: <Car className="w-4 h-4" /> },
+      { id: 'rv-loan', name: 'RV Loan', icon: <Car className="w-4 h-4" /> }
     ]
   },
   {
-    id: 'business',
-    name: 'Business',
+    id: 'personal-loans',
+    name: 'Personal Loans',
+    icon: <CreditCard className="w-5 h-5" />,
+    types: [
+      { id: 'personal-loan', name: 'Personal Loan', icon: <CreditCard className="w-4 h-4" /> },
+      { id: 'medical-loan', name: 'Medical Loan', icon: <Landmark className="w-4 h-4" /> },
+      { id: 'wedding-loan', name: 'Wedding Loan', icon: <CreditCard className="w-4 h-4" /> },
+      { id: 'home-improvement', name: 'Home Improvement Loan', icon: <Home className="w-4 h-4" /> }
+    ]
+  },
+  {
+    id: 'business-loans',
+    name: 'Business Loans',
     icon: <Building2 className="w-5 h-5" />,
     types: [
       { id: 'business-loan', name: 'Business Loan', icon: <Building2 className="w-4 h-4" /> },
       { id: 'working-capital', name: 'Working Capital', icon: <Building2 className="w-4 h-4" /> },
       { id: 'equipment-loan', name: 'Equipment Loan', icon: <Building2 className="w-4 h-4" /> },
-      { id: 'overdraft', name: 'Overdraft', icon: <CreditCard className="w-4 h-4" /> }
+      { id: 'business-line-credit', name: 'Business Line of Credit', icon: <CreditCard className="w-4 h-4" /> }
+    ]
+  },
+  {
+    id: 'other-debts',
+    name: 'Other Debts',
+    icon: <DollarSign className="w-5 h-5" />,
+    types: [
+      { id: 'tax-debt', name: 'Tax Debt', icon: <DollarSign className="w-4 h-4" /> },
+      { id: 'legal-debt', name: 'Legal Debt', icon: <DollarSign className="w-4 h-4" /> },
+      { id: 'family-loan', name: 'Family Loan', icon: <DollarSign className="w-4 h-4" /> },
+      { id: 'other', name: 'Other', icon: <DollarSign className="w-4 h-4" /> }
     ]
   }
 ];
@@ -224,277 +255,158 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Liability Name */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Liability Name</label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., Home Loan, Credit Card Debt"
-              required
-            />
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Liability Name</label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Home Mortgage"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Outstanding Amount (₹)</label>
+              <Input
+                type="number"
+                value={formData.remainingAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, remainingAmount: parseFloat(e.target.value) || 0 }))}
+                placeholder="Current outstanding amount"
+                required
+              />
+            </div>
           </div>
 
-          {/* Category Selection */}
+          {/* Category Selection - Simplified */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
-            <div className="grid grid-cols-2 gap-3">
+            <Select
+              value={formData.category}
+              onValueChange={handleCategoryChange}
+            >
+              <option value="">Select a category</option>
               {liabilityCategories.map(category => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => handleCategoryChange(category.id)}
-                  className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
-                    formData.category === category.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {category.icon}
-                  <span className="font-medium">{category.name}</span>
-                </button>
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
               ))}
-            </div>
+            </Select>
           </div>
 
-          {/* Type Selection */}
+          {/* Loan Type - Simplified */}
           <div>
             <label className="block text-sm font-medium mb-2">Loan Type</label>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(loanTypeInfo).map(([type, info]) => (
-                <div key={type}>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, type: type as 'EMI' | 'Regular' }))}
-                    className={`w-full p-4 border rounded-lg text-left transition-colors ${
-                      formData.type === type
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      {type === 'EMI' ? <Calculator className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
-                      <span className="font-medium">{info.title}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{info.description}</p>
-                  </button>
-                </div>
-              ))}
+            <Select
+              value={formData.type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as 'EMI' | 'Regular' }))}
+            >
+              <option value="">Select loan type</option>
+              <option value="EMI">EMI Loan (Fixed monthly payments)</option>
+              <option value="Regular">Regular Debt (Variable payments)</option>
+            </Select>
+          </div>
+
+          {/* Essential Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Monthly Payment (₹)</label>
+              <Input
+                type="number"
+                value={formData.monthlyPayment}
+                onChange={(e) => setFormData(prev => ({ ...prev, monthlyPayment: parseFloat(e.target.value) || 0 }))}
+                placeholder="Monthly payment amount"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Interest Rate (% p.a.)</label>
+              <Input
+                type="number"
+                step="0.1"
+                value={formData.interestRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))}
+                placeholder="Annual interest rate"
+              />
             </div>
           </div>
 
-          {/* Type Selection */}
-          {selectedCategory && (
-            <div>
-              <label className="block text-sm font-medium mb-2">Specific Type</label>
-              <div className="grid grid-cols-2 gap-3">
-                {selectedCategory.types.map((type: any) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, type: type.id }))}
-                    className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
-                      formData.type === type.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {type.icon}
-                    <span className="font-medium">{type.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* EMI vs Regular specific fields */}
-          {formData.type === 'EMI' ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Principal Amount (₹)</label>
-                  <Input
-                    type="number"
-                    value={formData.principalAmount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, principalAmount: parseFloat(e.target.value) || 0 }))}
-                    placeholder="Original loan amount"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Interest Rate (% p.a.)</label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={formData.interestRate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))}
-                    placeholder="Annual interest rate"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Total Tenure (months)</label>
-                  <Input
-                    type="number"
-                    value={formData.totalMonths}
-                    onChange={(e) => setFormData(prev => ({ ...prev, totalMonths: parseInt(e.target.value) || 0 }))}
-                    placeholder="Total loan tenure"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Remaining Tenure (months)</label>
-                  <Input
-                    type="number"
-                    value={formData.remainingMonths}
-                    onChange={(e) => setFormData(prev => ({ ...prev, remainingMonths: parseInt(e.target.value) || 0 }))}
-                    placeholder="Remaining months"
-                  />
-                </div>
-              </div>
-
-              {/* EMI Calculator */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-blue-800">EMI Calculator</h4>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowCalculations(!showCalculations)}
-                  >
-                    {showCalculations ? 'Hide' : 'Show'} Calculations
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-blue-700">Calculated EMI</p>
-                    <p className="text-lg font-bold text-blue-800">
-                      ₹{calculatedEMI.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-700">Remaining Amount</p>
-                    <p className="text-lg font-bold text-blue-800">
-                      ₹{calculatedRemaining.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                {showCalculations && (
-                  <div className="mt-4 p-3 bg-white rounded border">
-                    <p className="text-sm text-gray-600 mb-2">Calculation Details:</p>
-                    <div className="text-xs space-y-1">
-                      <p>Principal: ₹{formData.principalAmount?.toLocaleString()}</p>
-                      <p>Rate: {formData.interestRate}% p.a. ({(formData.interestRate || 0) / 12}% monthly)</p>
-                      <p>Tenure: {formData.totalMonths} months</p>
-                      <p>EMI Formula: P × r × (1+r)^n / ((1+r)^n - 1)</p>
+          {/* Optional Fields - Collapsible */}
+          <div className="space-y-3">
+            <details className="group">
+              <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
+                Additional Details (Optional)
+              </summary>
+              <div className="mt-3 space-y-3 pl-4 border-l-2 border-gray-200">
+                {/* EMI Specific Fields */}
+                {formData.type === 'EMI' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Principal Amount (₹)</label>
+                      <Input
+                        type="number"
+                        value={formData.principalAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, principalAmount: parseFloat(e.target.value) || 0 }))}
+                        placeholder="Original loan amount"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Total Tenure (months)</label>
+                      <Input
+                        type="number"
+                        value={formData.totalMonths}
+                        onChange={(e) => setFormData(prev => ({ ...prev, totalMonths: parseInt(e.target.value) || 0 }))}
+                        placeholder="Total loan tenure"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Remaining Tenure (months)</label>
+                      <Input
+                        type="number"
+                        value={formData.remainingMonths}
+                        onChange={(e) => setFormData(prev => ({ ...prev, remainingMonths: parseInt(e.target.value) || 0 }))}
+                        placeholder="Remaining months"
+                      />
                     </div>
                   </div>
                 )}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Monthly Payment (₹)</label>
-                <Input
-                  type="number"
-                  value={formData.monthlyPayment}
-                  onChange={(e) => setFormData(prev => ({ ...prev, monthlyPayment: parseFloat(e.target.value) || 0 }))}
-                  placeholder="Actual monthly EMI"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Use calculated EMI or enter actual EMI if different
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Remaining Amount (₹)</label>
-                <Input
-                  type="number"
-                  value={formData.remainingAmount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, remainingAmount: parseFloat(e.target.value) || 0 }))}
-                  placeholder="Outstanding amount"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Use calculated amount or enter actual outstanding
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Outstanding Amount (₹)</label>
-                  <Input
-                    type="number"
-                    value={formData.remainingAmount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, remainingAmount: parseFloat(e.target.value) || 0 }))}
-                    placeholder="Current outstanding amount"
-                    required
-                  />
+                {/* Dates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Start Date</label>
+                    <Input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    />
+                  </div>
+                  {formData.type === 'EMI' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">End Date</label>
+                      <Input
+                        type="date"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Interest Rate (% p.a.)</label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={formData.interestRate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))}
-                    placeholder="Annual interest rate"
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Additional details about this liability"
+                    className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    rows={2}
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Monthly Payment (₹)</label>
-                <Input
-                  type="number"
-                  value={formData.monthlyPayment}
-                  onChange={(e) => setFormData(prev => ({ ...prev, monthlyPayment: parseFloat(e.target.value) || 0 }))}
-                  placeholder="Monthly payment amount"
-                  required
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Minimum payment or planned payment amount
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Start Date</label>
-              <Input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-              />
-            </div>
-            {formData.type === 'EMI' && (
-              <div>
-                <label className="block text-sm font-medium mb-2">End Date</label>
-                <Input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Description (Optional)</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Additional details about this liability"
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-            />
+            </details>
           </div>
 
           {/* High Interest Warning */}

@@ -82,8 +82,8 @@ const sampleAssets: Asset[] = [
   {
     id: '1',
     name: 'Primary Residence',
-    category: 'Real Estate',
-    type: 'Property',
+    category: 'real-estate',
+    type: 'primary-residence',
     value: 2500000,
     purchaseDate: '2020-01-15',
     description: '3BHK apartment in downtown'
@@ -91,27 +91,27 @@ const sampleAssets: Asset[] = [
   {
     id: '2',
     name: 'Savings Account',
-    category: 'Cash & Equivalents',
-    type: 'Bank Account',
+    category: 'cash-savings',
+    type: 'savings-account',
     value: 150000,
     interestRate: 3.5,
     description: 'HDFC Savings Account'
   },
   {
     id: '3',
-    name: 'Fixed Deposit',
-    category: 'Cash & Equivalents',
-    type: 'Fixed Deposit',
+    name: 'Certificate of Deposit',
+    category: 'cash-savings',
+    type: 'certificate-deposit',
     value: 500000,
     interestRate: 6.8,
     maturityDate: '2025-12-31',
-    description: 'SBI FD for 3 years'
+    description: 'SBI CD for 3 years'
   },
   {
     id: '4',
     name: 'Mutual Fund Portfolio',
-    category: 'Investments',
-    type: 'Mutual Funds',
+    category: 'investments',
+    type: 'mutual-funds',
     value: 750000,
     monthlyIncome: 2500,
     description: 'Diversified equity and debt funds'
@@ -119,16 +119,16 @@ const sampleAssets: Asset[] = [
   {
     id: '5',
     name: 'Stocks Portfolio',
-    category: 'Investments',
-    type: 'Equity',
+    category: 'investments',
+    type: 'stocks',
     value: 300000,
     description: 'Blue chip stocks'
   },
   {
     id: '6',
     name: 'Car',
-    category: 'Personal Assets',
-    type: 'Vehicle',
+    category: 'vehicles',
+    type: 'car',
     value: 800000,
     purchaseDate: '2022-06-01',
     description: 'Honda City VX'
@@ -136,18 +136,26 @@ const sampleAssets: Asset[] = [
   {
     id: '7',
     name: 'Gold Jewelry',
-    category: 'Personal Assets',
-    type: 'Precious Metals',
+    category: 'personal-assets',
+    type: 'jewelry',
     value: 200000,
     description: 'Family gold collection'
+  },
+  {
+    id: '8',
+    name: '401(k) Account',
+    category: 'retirement-funds',
+    type: '401k',
+    value: 1200000,
+    description: 'Company 401(k) with employer match'
   }
 ];
 
 const sampleLiabilities: Liability[] = [
   {
     id: '1',
-    name: 'Home Loan',
-    category: 'Real Estate',
+    name: 'Home Mortgage',
+    category: 'mortgage',
     type: 'EMI',
     principalAmount: 2000000,
     remainingAmount: 1200000,
@@ -157,12 +165,12 @@ const sampleLiabilities: Liability[] = [
     endDate: '2030-01-15',
     remainingMonths: 60,
     totalMonths: 120,
-    description: 'SBI Home Loan'
+    description: 'SBI Home Mortgage'
   },
   {
     id: '2',
     name: 'Car Loan',
-    category: 'Personal Assets',
+    category: 'auto-loans',
     type: 'EMI',
     principalAmount: 600000,
     remainingAmount: 200000,
@@ -177,7 +185,7 @@ const sampleLiabilities: Liability[] = [
   {
     id: '3',
     name: 'Credit Card Debt',
-    category: 'Personal',
+    category: 'credit-cards',
     type: 'Regular',
     principalAmount: 50000,
     remainingAmount: 50000,
@@ -189,7 +197,7 @@ const sampleLiabilities: Liability[] = [
   {
     id: '4',
     name: 'Personal Loan',
-    category: 'Personal',
+    category: 'personal-loans',
     type: 'EMI',
     principalAmount: 200000,
     remainingAmount: 80000,
@@ -200,6 +208,21 @@ const sampleLiabilities: Liability[] = [
     remainingMonths: 8,
     totalMonths: 24,
     description: 'ICICI Personal Loan'
+  },
+  {
+    id: '5',
+    name: 'Student Loan',
+    category: 'student-loans',
+    type: 'EMI',
+    principalAmount: 300000,
+    remainingAmount: 150000,
+    monthlyPayment: 3000,
+    interestRate: 6.8,
+    startDate: '2018-09-01',
+    endDate: '2028-09-01',
+    remainingMonths: 48,
+    totalMonths: 120,
+    description: 'Federal Student Loan'
   }
 ];
 
@@ -285,24 +308,59 @@ export default function NetWorthPage() {
 
   const getCategoryIcon = (category: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
-      'Real Estate': <Home className="w-5 h-5" />,
-      'Cash & Equivalents': <Wallet className="w-5 h-5" />,
-      'Investments': <TrendingUp className="w-5 h-5" />,
-      'Personal Assets': <Gem className="w-5 h-5" />,
-      'Personal': <CreditCard className="w-5 h-5" />,
+      'cash-savings': <Wallet className="w-5 h-5" />,
+      'investments': <TrendingUp className="w-5 h-5" />,
+      'real-estate': <Home className="w-5 h-5" />,
+      'vehicles': <Car className="w-5 h-5" />,
+      'personal-assets': <Gem className="w-5 h-5" />,
+      'business-assets': <Briefcase className="w-5 h-5" />,
+      'retirement-funds': <PiggyBank className="w-5 h-5" />,
+      'mortgage': <Home className="w-5 h-5" />,
+      'credit-cards': <CreditCard className="w-5 h-5" />,
+      'student-loans': <Landmark className="w-5 h-5" />,
+      'auto-loans': <Car className="w-5 h-5" />,
+      'personal-loans': <CreditCard className="w-5 h-5" />,
+      'business-loans': <Building2 className="w-5 h-5" />,
+      'other-debts': <DollarSign className="w-5 h-5" />,
     };
     return iconMap[category] || <DollarSign className="w-5 h-5" />;
   };
 
   const getTypeIcon = (type: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
-      'Property': <Home className="w-4 h-4" />,
-      'Bank Account': <Landmark className="w-4 h-4" />,
-      'Fixed Deposit': <PiggyBank className="w-4 h-4" />,
-      'Mutual Funds': <BarChart3 className="w-4 h-4" />,
-      'Equity': <TrendingUp className="w-4 h-4" />,
-      'Vehicle': <Car className="w-4 h-4" />,
-      'Precious Metals': <Gem className="w-4 h-4" />,
+      // Asset types
+      'primary-residence': <Home className="w-4 h-4" />,
+      'rental-property': <Building2 className="w-4 h-4" />,
+      'commercial-property': <Building2 className="w-4 h-4" />,
+      'land': <Building2 className="w-4 h-4" />,
+      'savings-account': <Landmark className="w-4 h-4" />,
+      'checking-account': <Landmark className="w-4 h-4" />,
+      'money-market': <PiggyBank className="w-4 h-4" />,
+      'certificate-deposit': <PiggyBank className="w-4 h-4" />,
+      'cash': <DollarSign className="w-4 h-4" />,
+      'stocks': <TrendingUp className="w-4 h-4" />,
+      'mutual-funds': <BarChart3 className="w-4 h-4" />,
+      'bonds': <Briefcase className="w-4 h-4" />,
+      'etf': <BarChart3 className="w-4 h-4" />,
+      'crypto': <TrendingUp className="w-4 h-4" />,
+      'commodities': <Gem className="w-4 h-4" />,
+      'car': <Car className="w-4 h-4" />,
+      'motorcycle': <Car className="w-4 h-4" />,
+      'boat': <Car className="w-4 h-4" />,
+      'rv': <Car className="w-4 h-4" />,
+      'jewelry': <Gem className="w-4 h-4" />,
+      'art': <Gem className="w-4 h-4" />,
+      'electronics': <Smartphone className="w-4 h-4" />,
+      'furniture': <Home className="w-4 h-4" />,
+      'business-equipment': <Briefcase className="w-4 h-4" />,
+      'business-vehicle': <Car className="w-4 h-4" />,
+      'inventory': <Briefcase className="w-4 h-4" />,
+      'business-property': <Building2 className="w-4 h-4" />,
+      '401k': <PiggyBank className="w-4 h-4" />,
+      'ira': <PiggyBank className="w-4 h-4" />,
+      'roth-ira': <PiggyBank className="w-4 h-4" />,
+      'pension': <PiggyBank className="w-4 h-4" />,
+      // Liability types
       'EMI': <Calculator className="w-4 h-4" />,
       'Regular': <CreditCard className="w-4 h-4" />,
     };
@@ -451,22 +509,24 @@ export default function NetWorthPage() {
                 </div>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {categoryAssets.map(asset => (
-                  <div key={asset.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 group">
-                    <div className="flex items-center gap-3">
+                  <div key={asset.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 group transition-colors">
+                    <div className="flex items-center gap-3 flex-1">
                       {getTypeIcon(asset.type)}
-                      <div>
-                        <p className="font-medium">{asset.name}</p>
-                        <p className="text-sm text-muted-foreground">{asset.type}</p>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{asset.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {asset.type.replace('-', ' ')}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="font-bold text-green-600">{formatCurrency(asset.value)}</p>
+                        <p className="font-bold text-green-600 text-sm">{formatCurrency(asset.value)}</p>
                         {asset.monthlyIncome && (
-                          <p className="text-sm text-muted-foreground">
-                            +{formatCurrency(asset.monthlyIncome)}/month
+                          <p className="text-xs text-muted-foreground">
+                            +{formatCurrency(asset.monthlyIncome)}/mo
                           </p>
                         )}
                       </div>
@@ -475,16 +535,17 @@ export default function NetWorthPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditAsset(asset)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3 h-3" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteAsset(asset.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
@@ -522,24 +583,26 @@ export default function NetWorthPage() {
               </div>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-2">
               {liabilities.filter(l => l.type === 'EMI').map(liability => (
-                <div key={liability.id} className="p-4 border rounded-lg group">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                <div key={liability.id} className="p-3 border rounded-lg group hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3 flex-1">
                       {getTypeIcon(liability.type)}
-                      <div>
-                        <p className="font-medium">{liability.name}</p>
-                        <p className="text-sm text-muted-foreground">{liability.category}</p>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{liability.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {liability.category.replace('-', ' ')}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="font-bold text-red-600">
+                        <p className="font-bold text-red-600 text-sm">
                           {formatCurrency(liability.remainingAmount)}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatCurrency(liability.monthlyPayment)}/month
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(liability.monthlyPayment)}/mo
                         </p>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -547,37 +610,38 @@ export default function NetWorthPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditLiability(liability)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3 h-3" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteLiability(liability.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
                   </div>
                   
                   {liability.remainingMonths && liability.totalMonths && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
                         <span>Progress</span>
                         <span>{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} months</span>
                       </div>
                       <Progress 
                         value={((liability.totalMonths - liability.remainingMonths) / liability.totalMonths) * 100} 
-                        className="h-2"
+                        className="h-1.5"
                       />
                     </div>
                   )}
                   
-                  <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                    <span>Interest Rate: {liability.interestRate}%</span>
-                    <span>Remaining: {liability.remainingMonths} months</span>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>Rate: {liability.interestRate}%</span>
+                    <span>Remaining: {liability.remainingMonths}mo</span>
                   </div>
                 </div>
               ))}
@@ -596,23 +660,25 @@ export default function NetWorthPage() {
               </div>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               {liabilities.filter(l => l.type === 'Regular').map(liability => (
-                <div key={liability.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 group">
-                  <div className="flex items-center gap-3">
+                <div key={liability.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 group transition-colors">
+                  <div className="flex items-center gap-3 flex-1">
                     {getTypeIcon(liability.type)}
-                    <div>
-                      <p className="font-medium">{liability.name}</p>
-                      <p className="text-sm text-muted-foreground">{liability.category}</p>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{liability.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {liability.category.replace('-', ' ')}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="font-bold text-red-600">
+                      <p className="font-bold text-red-600 text-sm">
                         {formatCurrency(liability.remainingAmount)}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(liability.monthlyPayment)}/month
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(liability.monthlyPayment)}/mo
                       </p>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -620,16 +686,17 @@ export default function NetWorthPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleEditLiability(liability)}
+                        className="h-8 w-8 p-0"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDeleteLiability(liability.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
