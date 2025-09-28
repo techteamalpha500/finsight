@@ -443,23 +443,19 @@ export default function NetWorthPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Net Worth Tracker</h1>
           <p className="text-sm text-muted-foreground">Track your financial health and optimize your wealth</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Button 
+            variant="primary"
             onClick={() => handleAddItem('asset')}
-            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            leftIcon={<TrendingUp className="w-4 h-4" />}
           >
-            <div className="p-1 rounded-md bg-green-500/20 mr-2">
-              <TrendingUp className="w-4 h-4" />
-            </div>
             Add Asset
           </Button>
           <Button 
+            variant="primary"
             onClick={() => handleAddItem('liability')}
-            className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            leftIcon={<TrendingDown className="w-4 h-4" />}
           >
-            <div className="p-1 rounded-md bg-red-500/20 mr-2">
-              <TrendingDown className="w-4 h-4" />
-            </div>
             Add Liability
           </Button>
         </div>
@@ -600,7 +596,7 @@ export default function NetWorthPage() {
 
       {/* Assets Tab */}
       {activeTab === 'assets' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Assets by Category - Only show categories with items */}
           {Object.entries(
             assets.reduce((acc, asset) => {
@@ -608,16 +604,16 @@ export default function NetWorthPage() {
               acc[asset.category].push(asset);
               return acc;
             }, {} as { [key: string]: Asset[] })
-          ).map(([category, categoryAssets]) => (
-            <div key={category} className="space-y-3">
-              {/* Category Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+          ).map(([category, categoryAssets], index) => (
+            <div key={category} className="space-y-4">
+              {/* Category Header with Better Sum Display */}
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/10 dark:to-green-800/10 rounded-lg border border-green-200 dark:border-green-800/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-green-200 dark:bg-green-800/30 shadow-sm">
                     {getCategoryIcon(category)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-xl font-bold text-foreground">
                       {getCategoryDisplayName(category)}
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -626,9 +622,12 @@ export default function NetWorthPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                    {formatCurrency(categoryAssets.reduce((sum, asset) => sum + asset.value, 0))}
-                  </p>
+                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-green-200 dark:border-green-800/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Value</p>
+                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {formatCurrency(categoryAssets.reduce((sum, asset) => sum + asset.value, 0))}
+                    </p>
+                  </div>
                 </div>
               </div>
               
@@ -707,10 +706,10 @@ export default function NetWorthPage() {
                 Start building your wealth by adding your first asset. Track your investments, savings, and property.
               </p>
               <Button 
+                variant="primary"
                 onClick={() => handleAddItem('asset')}
-                className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white"
+                leftIcon={<TrendingUp className="w-4 h-4" />}
               >
-                <TrendingUp className="w-4 h-4 mr-2" />
                 Add Your First Asset
               </Button>
             </Card>
@@ -720,7 +719,7 @@ export default function NetWorthPage() {
 
       {/* Liabilities Tab */}
       {activeTab === 'liabilities' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Liabilities by Category - Only show categories with items */}
           {Object.entries(
             liabilities.reduce((acc, liability) => {
@@ -728,16 +727,16 @@ export default function NetWorthPage() {
               acc[liability.category].push(liability);
               return acc;
             }, {} as { [key: string]: Liability[] })
-          ).map(([category, categoryLiabilities]) => (
-            <div key={category} className="space-y-3">
-              {/* Category Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
+          ).map(([category, categoryLiabilities], index) => (
+            <div key={category} className="space-y-4">
+              {/* Category Header with Better Sum Display */}
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/10 dark:to-red-800/10 rounded-lg border border-red-200 dark:border-red-800/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-red-200 dark:bg-red-800/30 shadow-sm">
                     {getCategoryIcon(category)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-xl font-bold text-foreground">
                       {getCategoryDisplayName(category)}
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -746,9 +745,12 @@ export default function NetWorthPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-red-600 dark:text-red-400">
-                    {formatCurrency(categoryLiabilities.reduce((sum, l) => sum + l.remainingAmount, 0))}
-                  </p>
+                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-red-200 dark:border-red-800/20">
+                    <p className="text-xs text-muted-foreground mb-1">Outstanding</p>
+                    <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                      {formatCurrency(categoryLiabilities.reduce((sum, l) => sum + l.remainingAmount, 0))}
+                    </p>
+                  </div>
                 </div>
               </div>
               
@@ -843,10 +845,10 @@ export default function NetWorthPage() {
                 Track your debts and loans to better manage your finances and improve your financial health.
               </p>
               <Button 
+                variant="primary"
                 onClick={() => handleAddItem('liability')}
-                className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white"
+                leftIcon={<TrendingDown className="w-4 h-4" />}
               >
-                <TrendingDown className="w-4 h-4 mr-2" />
                 Add Your First Liability
               </Button>
             </Card>
