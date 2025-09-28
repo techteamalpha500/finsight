@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Card } from "@/app/components/Card";
 import { Button } from "@/app/components/Button";
 import { Input } from "@/app/components/Input";
-import { Select } from "@/app/components/Select";
 import { Modal } from "@/app/components/Modal";
 import { 
   Home, 
@@ -232,9 +231,10 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset }: Ass
           {/* Category Selection - Simplified */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
-            <Select
+            <select
               value={formData.category}
-              onValueChange={handleCategoryChange}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select a category</option>
               {assetCategories.map(category => (
@@ -242,16 +242,17 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset }: Ass
                   {category.name}
                 </option>
               ))}
-            </Select>
+            </select>
           </div>
 
           {/* Type Selection - Simplified */}
           {selectedCategory && (
             <div>
               <label className="block text-sm font-medium mb-2">Type</label>
-              <Select
+              <select
                 value={formData.type}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select a type</option>
                 {selectedCategory.types.map((type: any) => (
@@ -259,7 +260,7 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset }: Ass
                     {type.name}
                   </option>
                 ))}
-              </Select>
+              </select>
             </div>
           )}
 

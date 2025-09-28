@@ -326,6 +326,26 @@ export default function NetWorthPage() {
     return iconMap[category] || <DollarSign className="w-5 h-5" />;
   };
 
+  const getCategoryDisplayName = (category: string) => {
+    const nameMap: { [key: string]: string } = {
+      'cash-savings': 'Cash & Savings',
+      'investments': 'Investments',
+      'real-estate': 'Real Estate',
+      'vehicles': 'Vehicles',
+      'personal-assets': 'Personal Assets',
+      'business-assets': 'Business Assets',
+      'retirement-funds': 'Retirement Funds',
+      'mortgage': 'Mortgage',
+      'credit-cards': 'Credit Cards',
+      'student-loans': 'Student Loans',
+      'auto-loans': 'Auto Loans',
+      'personal-loans': 'Personal Loans',
+      'business-loans': 'Business Loans',
+      'other-debts': 'Other Debts',
+    };
+    return nameMap[category] || category;
+  };
+
   const getTypeIcon = (type: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
       // Asset types
@@ -418,22 +438,22 @@ export default function NetWorthPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Net Worth Tracker</h1>
-          <p className="text-muted-foreground">Track your financial health and optimize your wealth</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Net Worth Tracker</h1>
+          <p className="text-sm text-muted-foreground">Track your financial health and optimize your wealth</p>
         </div>
         <div className="flex gap-2">
           <Button 
             onClick={() => handleAddItem('asset')}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 text-sm"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
             Add Asset
           </Button>
           <Button 
             onClick={() => handleAddItem('liability')}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 text-sm"
           >
             <TrendingDown className="w-4 h-4 mr-2" />
             Add Liability
@@ -441,9 +461,99 @@ export default function NetWorthPage() {
         </div>
       </div>
 
+      {/* Always Visible KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Assets</p>
+              <p className="text-lg sm:text-xl font-bold text-green-600">
+                {formatCurrency(financialHealth.totalAssets)}
+              </p>
+            </div>
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Liabilities</p>
+              <p className="text-lg sm:text-xl font-bold text-red-600">
+                {formatCurrency(financialHealth.totalLiabilities)}
+              </p>
+            </div>
+            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Net Worth</p>
+              <p className={`text-lg sm:text-xl font-bold ${financialHealth.netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(financialHealth.netWorth)}
+              </p>
+            </div>
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Monthly Cash Flow</p>
+              <p className={`text-lg sm:text-xl font-bold ${financialHealth.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(financialHealth.monthlyCashFlow)}
+              </p>
+            </div>
+            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Additional KPIs Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Debt-to-Asset Ratio</p>
+              <p className="text-lg sm:text-xl font-bold text-orange-600">
+                {financialHealth.debtToAssetRatio.toFixed(1)}%
+              </p>
+            </div>
+            <Target className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Liquidity Ratio</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-600">
+                {financialHealth.liquidityRatio.toFixed(1)} months
+              </p>
+            </div>
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Monthly Debt Payments</p>
+              <p className="text-lg sm:text-xl font-bold text-red-600">
+                {formatCurrency(liabilities.reduce((sum, l) => sum + l.monthlyPayment, 0))}
+              </p>
+            </div>
+            <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+          </div>
+        </Card>
+      </div>
+
       {/* Tab Navigation */}
       <div className="border-b border-border">
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2">
           {[
             { id: 'overview', name: 'Overview', icon: <PieChart className="w-4 h-4" /> },
             { id: 'assets', name: 'Assets', icon: <TrendingUp className="w-4 h-4" /> },
@@ -452,14 +562,14 @@ export default function NetWorthPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-t-md transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-t-md transition-colors ${
                 activeTab === tab.id 
                   ? 'bg-muted font-medium border-b-2 border-blue-600' 
                   : 'text-foreground hover:bg-muted'
               }`}
             >
               {tab.icon}
-              {tab.name}
+              <span className="hidden sm:inline">{tab.name}</span>
             </button>
           ))}
         </div>
@@ -472,19 +582,8 @@ export default function NetWorthPage() {
 
       {/* Assets Tab */}
       {activeTab === 'assets' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Assets</h2>
-            <Button 
-              onClick={() => handleAddItem('asset')}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Add Asset
-            </Button>
-          </div>
-
-          {/* Assets by Category */}
+        <div className="space-y-4">
+          {/* Assets by Category - Only show categories with items */}
           {Object.entries(
             assets.reduce((acc, asset) => {
               if (!acc[asset.category]) acc[asset.category] = [];
@@ -492,50 +591,44 @@ export default function NetWorthPage() {
               return acc;
             }, {} as { [key: string]: Asset[] })
           ).map(([category, categoryAssets]) => (
-            <Card key={category} className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+            <Card key={category} className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
                   {getCategoryIcon(category)}
-                  <h3 className="text-lg font-semibold">{category}</h3>
-                  <Badge variant="secondary">
-                    {categoryAssets.length} items
+                  <h3 className="text-base font-semibold">
+                    {getCategoryDisplayName(category)}
+                  </h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {categoryAssets.length}
                   </Badge>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-sm font-bold text-green-600">
                     {formatCurrency(categoryAssets.reduce((sum, asset) => sum + asset.value, 0))}
                   </p>
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {categoryAssets.map(asset => (
-                  <div key={asset.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 group transition-colors">
-                    <div className="flex items-center gap-3 flex-1">
-                      {getTypeIcon(asset.type)}
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{asset.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {asset.type.replace('-', ' ')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="font-bold text-green-600 text-sm">{formatCurrency(asset.value)}</p>
-                        {asset.monthlyIncome && (
-                          <p className="text-xs text-muted-foreground">
-                            +{formatCurrency(asset.monthlyIncome)}/mo
+                  <div key={asset.id} className="relative p-3 border rounded-lg hover:shadow-md transition-all group bg-gradient-to-br from-green-50 to-white">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getTypeIcon(asset.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{asset.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {asset.type.replace('-', ' ')}
                           </p>
-                        )}
+                        </div>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditAsset(asset)}
-                          className="h-8 w-8 p-0"
+                          className="h-6 w-6 p-0"
                         >
                           <Edit className="w-3 h-3" />
                         </Button>
@@ -543,74 +636,101 @@ export default function NetWorthPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteAsset(asset.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="font-bold text-green-600 text-sm">
+                        {formatCurrency(asset.value)}
+                      </p>
+                      {asset.monthlyIncome && (
+                        <p className="text-xs text-muted-foreground">
+                          +{formatCurrency(asset.monthlyIncome)}/mo
+                        </p>
+                      )}
+                      {asset.interestRate && (
+                        <p className="text-xs text-muted-foreground">
+                          {asset.interestRate}% p.a.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </Card>
           ))}
+
+          {/* Empty State */}
+          {assets.length === 0 && (
+            <Card className="p-8 text-center">
+              <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Assets Added</h3>
+              <p className="text-muted-foreground mb-4">Start building your wealth by adding your first asset</p>
+              <Button 
+                onClick={() => handleAddItem('asset')}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Add Your First Asset
+              </Button>
+            </Card>
+          )}
         </div>
       )}
 
       {/* Liabilities Tab */}
       {activeTab === 'liabilities' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Liabilities</h2>
-            <Button 
-              onClick={() => handleAddItem('liability')}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              <TrendingDown className="w-4 h-4 mr-2" />
-              Add Liability
-            </Button>
-          </div>
-
-          {/* EMI Loans */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Calculator className="w-5 h-5" />
-                <h3 className="text-lg font-semibold">EMI Loans</h3>
-                <Badge variant="secondary">
-                  {liabilities.filter(l => l.type === 'EMI').length} loans
-                </Badge>
+        <div className="space-y-4">
+          {/* Liabilities by Category - Only show categories with items */}
+          {Object.entries(
+            liabilities.reduce((acc, liability) => {
+              if (!acc[liability.category]) acc[liability.category] = [];
+              acc[liability.category].push(liability);
+              return acc;
+            }, {} as { [key: string]: Liability[] })
+          ).map(([category, categoryLiabilities]) => (
+            <Card key={category} className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {getCategoryIcon(category)}
+                  <h3 className="text-base font-semibold">
+                    {getCategoryDisplayName(category)}
+                  </h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {categoryLiabilities.length}
+                  </Badge>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-sm font-bold text-red-600">
+                    {formatCurrency(categoryLiabilities.reduce((sum, l) => sum + l.remainingAmount, 0))}
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              {liabilities.filter(l => l.type === 'EMI').map(liability => (
-                <div key={liability.id} className="p-3 border rounded-lg group hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3 flex-1">
-                      {getTypeIcon(liability.type)}
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{liability.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {liability.category.replace('-', ' ')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="font-bold text-red-600 text-sm">
-                          {formatCurrency(liability.remainingAmount)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(liability.monthlyPayment)}/mo
-                        </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {categoryLiabilities.map(liability => (
+                  <div key={liability.id} className="relative p-3 border rounded-lg hover:shadow-md transition-all group bg-gradient-to-br from-red-50 to-white">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getTypeIcon(liability.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{liability.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {liability.type === 'EMI' ? 'EMI Loan' : 'Regular Debt'}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditLiability(liability)}
-                          className="h-8 w-8 p-0"
+                          className="h-6 w-6 p-0"
                         >
                           <Edit className="w-3 h-3" />
                         </Button>
@@ -618,92 +738,61 @@ export default function NetWorthPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteLiability(liability.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
-                  </div>
-                  
-                  {liability.remainingMonths && liability.totalMonths && (
+                    
                     <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Progress</span>
-                        <span>{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} months</span>
-                      </div>
-                      <Progress 
-                        value={((liability.totalMonths - liability.remainingMonths) / liability.totalMonths) * 100} 
-                        className="h-1.5"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>Rate: {liability.interestRate}%</span>
-                    <span>Remaining: {liability.remainingMonths}mo</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Regular Debts */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5" />
-                <h3 className="text-lg font-semibold">Regular Debts</h3>
-                <Badge variant="secondary">
-                  {liabilities.filter(l => l.type === 'Regular').length} debts
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              {liabilities.filter(l => l.type === 'Regular').map(liability => (
-                <div key={liability.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 group transition-colors">
-                  <div className="flex items-center gap-3 flex-1">
-                    {getTypeIcon(liability.type)}
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{liability.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {liability.category.replace('-', ' ')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
                       <p className="font-bold text-red-600 text-sm">
                         {formatCurrency(liability.remainingAmount)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatCurrency(liability.monthlyPayment)}/mo
                       </p>
+                      {liability.interestRate && (
+                        <p className="text-xs text-muted-foreground">
+                          {liability.interestRate}% p.a.
+                        </p>
+                      )}
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditLiability(liability)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteLiability(liability.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+
+                    {/* EMI Progress Bar */}
+                    {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Progress</span>
+                          <span>{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} mo</span>
+                        </div>
+                        <Progress 
+                          value={((liability.totalMonths - liability.remainingMonths) / liability.totalMonths) * 100} 
+                          className="h-1.5"
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          ))}
+
+          {/* Empty State */}
+          {liabilities.length === 0 && (
+            <Card className="p-8 text-center">
+              <TrendingDown className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Liabilities Added</h3>
+              <p className="text-muted-foreground mb-4">Track your debts and loans to better manage your finances</p>
+              <Button 
+                onClick={() => handleAddItem('liability')}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <TrendingDown className="w-4 h-4 mr-2" />
+                Add Your First Liability
+              </Button>
+            </Card>
+          )}
         </div>
       )}
 

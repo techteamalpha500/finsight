@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Card } from "@/app/components/Card";
 import { Button } from "@/app/components/Button";
 import { Input } from "@/app/components/Input";
-import { Select } from "@/app/components/Select";
 import { Modal } from "@/app/components/Modal";
 import { 
   Home, 
@@ -282,9 +281,10 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
           {/* Category Selection - Simplified */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
-            <Select
+            <select
               value={formData.category}
-              onValueChange={handleCategoryChange}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select a category</option>
               {liabilityCategories.map(category => (
@@ -292,20 +292,21 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
                   {category.name}
                 </option>
               ))}
-            </Select>
+            </select>
           </div>
 
           {/* Loan Type - Simplified */}
           <div>
             <label className="block text-sm font-medium mb-2">Loan Type</label>
-            <Select
+            <select
               value={formData.type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as 'EMI' | 'Regular' }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'EMI' | 'Regular' }))}
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select loan type</option>
               <option value="EMI">EMI Loan (Fixed monthly payments)</option>
               <option value="Regular">Regular Debt (Variable payments)</option>
-            </Select>
+            </select>
           </div>
 
           {/* Essential Fields */}
