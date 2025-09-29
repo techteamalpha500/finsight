@@ -335,6 +335,26 @@ export default function NetWorthPage() {
     return iconMap[category] || <DollarSign className="w-5 h-5" />;
   };
 
+  const getCategoryColor = (category: string) => {
+    const colorMap: { [key: string]: string } = {
+      'cash-savings': 'bg-emerald-900/30 text-emerald-400',
+      'investments': 'bg-sky-900/30 text-sky-400',
+      'real-estate': 'bg-violet-900/30 text-violet-400',
+      'vehicles': 'bg-amber-900/30 text-amber-400',
+      'personal-assets': 'bg-pink-900/30 text-pink-400',
+      'business-assets': 'bg-indigo-900/30 text-indigo-400',
+      'retirement-funds': 'bg-purple-900/30 text-purple-400',
+      'mortgage': 'bg-violet-900/30 text-violet-400',
+      'credit-cards': 'bg-rose-900/30 text-rose-400',
+      'student-loans': 'bg-blue-900/30 text-blue-400',
+      'auto-loans': 'bg-amber-900/30 text-amber-400',
+      'personal-loans': 'bg-rose-900/30 text-rose-400',
+      'business-loans': 'bg-indigo-900/30 text-indigo-400',
+      'other-debts': 'bg-slate-900/30 text-slate-300',
+    };
+    return colorMap[category] || 'bg-slate-700 text-slate-200';
+  };
+
   const getCategoryDisplayName = (category: string) => {
     const nameMap: { [key: string]: string } = {
       'cash-savings': 'Cash & Savings',
@@ -605,7 +625,7 @@ export default function NetWorthPage() {
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               <h2 className="text-base font-semibold">Assets</h2>
             </div>
-            <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
+            <Button variant="accent" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
           </div>
           <div className="space-y-6">
           {Object.entries(
@@ -619,7 +639,7 @@ export default function NetWorthPage() {
               <Card key={category} className="p-4 border-slate-700 bg-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-slate-700">{getCategoryIcon(category)}</div>
+                    <div className={`p-2 rounded-lg ${getCategoryColor(category)}`}>{getCategoryIcon(category)}</div>
                     <div>
                       <h3 className="text-base font-semibold">{getCategoryDisplayName(category)}</h3>
                       <p className="text-xs text-slate-400">{list.length} {list.length === 1 ? 'item' : 'items'}</p>
@@ -662,7 +682,7 @@ export default function NetWorthPage() {
               </div>
               <h3 className="text-xl font-semibold mb-2 text-foreground">No Assets Yet</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your first asset to begin calculating your net worth.</p>
-              <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
+              <Button variant="accent" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
             </Card>
           )}
           </div>
@@ -677,7 +697,7 @@ export default function NetWorthPage() {
               <TrendingDown className="w-4 h-4 text-rose-400" />
               <h2 className="text-base font-semibold">Liabilities</h2>
             </div>
-            <Button variant="destructive" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
+            <Button variant="accent" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
           </div>
           <div className="space-y-6">
           {Object.entries(
@@ -691,7 +711,7 @@ export default function NetWorthPage() {
               <Card key={category} className="p-4 border-slate-700 bg-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-slate-700">{getCategoryIcon(category)}</div>
+                    <div className={`p-2 rounded-lg ${getCategoryColor(category)}`}>{getCategoryIcon(category)}</div>
                     <div>
                       <h3 className="text-base font-semibold">{getCategoryDisplayName(category)}</h3>
                       <p className="text-xs text-slate-400">{list.length} {list.length === 1 ? 'item' : 'items'}</p>
@@ -730,7 +750,7 @@ export default function NetWorthPage() {
               </div>
               <h3 className="text-xl font-semibold mb-2 text-foreground">No Liabilities Yet</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your first liability to complete your net worth picture.</p>
-              <Button variant="primary" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
+              <Button variant="accent" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
             </Card>
           )}
           </div>

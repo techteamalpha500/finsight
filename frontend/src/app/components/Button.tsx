@@ -2,7 +2,7 @@
 import React from "react";
 import { cn } from "./utils";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "accent";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -30,6 +30,8 @@ export function Button({
       "text-foreground hover:bg-muted",
     danger:
       "bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500",
+    accent:
+      "bg-purple-600 text-white hover:bg-purple-700 focus-visible:ring-purple-500",
   };
 
   const sizeClasses: Record<ButtonSize, string> = {

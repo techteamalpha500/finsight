@@ -47,7 +47,7 @@ const assetCategories = [
   {
     id: 'cash-savings',
     name: 'Cash & Savings',
-    icon: <Wallet className="w-5 h-5" />,
+    icon: <Wallet className="w-5 h-5 text-emerald-400" />,
     types: [
       { id: 'savings-account', name: 'Savings Account', icon: <Landmark className="w-4 h-4" /> },
       { id: 'checking-account', name: 'Checking Account', icon: <Landmark className="w-4 h-4" /> },
@@ -59,7 +59,7 @@ const assetCategories = [
   {
     id: 'investments',
     name: 'Investments',
-    icon: <TrendingUp className="w-5 h-5" />,
+    icon: <TrendingUp className="w-5 h-5 text-sky-400" />,
     types: [
       { id: 'stocks', name: 'Stocks', icon: <TrendingUp className="w-4 h-4" /> },
       { id: 'mutual-funds', name: 'Mutual Funds', icon: <BarChart3 className="w-4 h-4" /> },
@@ -72,7 +72,7 @@ const assetCategories = [
   {
     id: 'real-estate',
     name: 'Real Estate',
-    icon: <Home className="w-5 h-5" />,
+    icon: <Home className="w-5 h-5 text-violet-400" />,
     types: [
       { id: 'primary-residence', name: 'Primary Residence', icon: <Home className="w-4 h-4" /> },
       { id: 'rental-property', name: 'Rental Property', icon: <Building2 className="w-4 h-4" /> },
@@ -83,7 +83,7 @@ const assetCategories = [
   {
     id: 'vehicles',
     name: 'Vehicles',
-    icon: <Car className="w-5 h-5" />,
+    icon: <Car className="w-5 h-5 text-amber-400" />,
     types: [
       { id: 'car', name: 'Car', icon: <Car className="w-4 h-4" /> },
       { id: 'motorcycle', name: 'Motorcycle', icon: <Car className="w-4 h-4" /> },
@@ -94,7 +94,7 @@ const assetCategories = [
   {
     id: 'personal-assets',
     name: 'Personal Assets',
-    icon: <Gem className="w-5 h-5" />,
+    icon: <Gem className="w-5 h-5 text-pink-400" />,
     types: [
       { id: 'jewelry', name: 'Jewelry', icon: <Gem className="w-4 h-4" /> },
       { id: 'art', name: 'Art & Collectibles', icon: <Gem className="w-4 h-4" /> },
@@ -105,7 +105,7 @@ const assetCategories = [
   {
     id: 'business-assets',
     name: 'Business Assets',
-    icon: <Briefcase className="w-5 h-5" />,
+    icon: <Briefcase className="w-5 h-5 text-indigo-400" />,
     types: [
       { id: 'business-equipment', name: 'Business Equipment', icon: <Briefcase className="w-4 h-4" /> },
       { id: 'business-vehicle', name: 'Business Vehicle', icon: <Car className="w-4 h-4" /> },
@@ -116,7 +116,7 @@ const assetCategories = [
   {
     id: 'retirement-funds',
     name: 'Retirement Funds',
-    icon: <PiggyBank className="w-5 h-5" />,
+    icon: <PiggyBank className="w-5 h-5 text-purple-400" />,
     types: [
       { id: '401k', name: '401(k)', icon: <PiggyBank className="w-4 h-4" /> },
       { id: 'ira', name: 'IRA', icon: <PiggyBank className="w-4 h-4" /> },
@@ -245,7 +245,7 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+            <Button type="submit" variant="accent">
               {editingAsset ? 'Update' : 'Add'}
             </Button>
           </div>

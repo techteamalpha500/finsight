@@ -40,13 +40,13 @@ interface LiabilityFormProps {
 }
 
 const liabilityCategories = [
-  { id: 'mortgage', name: 'Mortgage', icon: <Home className="w-5 h-5" /> },
-  { id: 'credit-cards', name: 'Credit Cards', icon: <CreditCard className="w-5 h-5" /> },
-  { id: 'student-loans', name: 'Student Loans', icon: <Landmark className="w-5 h-5" /> },
-  { id: 'auto-loans', name: 'Auto Loans', icon: <Car className="w-5 h-5" /> },
-  { id: 'personal-loans', name: 'Personal Loans', icon: <CreditCard className="w-5 h-5" /> },
-  { id: 'business-loans', name: 'Business Loans', icon: <Building2 className="w-5 h-5" /> },
-  { id: 'other-debts', name: 'Other Debts', icon: <DollarSign className="w-5 h-5" /> }
+  { id: 'mortgage', name: 'Mortgage', icon: <Home className="w-5 h-5 text-violet-400" /> },
+  { id: 'credit-cards', name: 'Credit Cards', icon: <CreditCard className="w-5 h-5 text-rose-400" /> },
+  { id: 'student-loans', name: 'Student Loans', icon: <Landmark className="w-5 h-5 text-blue-400" /> },
+  { id: 'auto-loans', name: 'Auto Loans', icon: <Car className="w-5 h-5 text-amber-400" /> },
+  { id: 'personal-loans', name: 'Personal Loans', icon: <CreditCard className="w-5 h-5 text-rose-400" /> },
+  { id: 'business-loans', name: 'Business Loans', icon: <Building2 className="w-5 h-5 text-indigo-400" /> },
+  { id: 'other-debts', name: 'Other Debts', icon: <DollarSign className="w-5 h-5 text-slate-300" /> }
 ];
 
 export default function LiabilityForm({ isOpen, onClose, onSave, editingLiability, presetCategoryId }: LiabilityFormProps) {
@@ -215,7 +215,7 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+            <Button type="submit" variant="accent">
               {editingLiability ? 'Update' : 'Add'}
             </Button>
           </div>
