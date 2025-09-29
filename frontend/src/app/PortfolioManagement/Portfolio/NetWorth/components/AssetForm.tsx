@@ -40,6 +40,7 @@ interface AssetFormProps {
   onClose: () => void;
   onSave: (asset: Asset) => void;
   editingAsset?: Asset | null;
+  presetCategoryId?: string; // optional quick-add preset
 }
 
 const assetCategories = [
@@ -125,7 +126,7 @@ const assetCategories = [
   }
 ];
 
-export default function AssetForm({ isOpen, onClose, onSave, editingAsset }: AssetFormProps) {
+export default function AssetForm({ isOpen, onClose, onSave, editingAsset, presetCategoryId }: AssetFormProps) {
   const [formData, setFormData] = useState<Partial<Asset>>({
     name: '',
     category: '',
@@ -157,7 +158,14 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset }: Ass
         maturityDate: '',
         description: ''
       });
-      setSelectedCategory(null);
+      // Apply preset category for quick add
+      if (presetCategoryId) {
+        const cat = assetCategories.find(c => c.id === presetCategoryId) || null;
+        setSelectedCategory(cat);
+        setFormData(prev => ({ ...prev, category: presetCategoryId, type: '' }));
+      } else {
+        setSelectedCategory(null);
+      }
     }
   }, [editingAsset, isOpen]);
 

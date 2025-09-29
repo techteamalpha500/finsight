@@ -435,8 +435,10 @@ export default function NetWorthPage() {
     setLiabilities(prev => prev.filter(l => l.id !== liabilityId));
   };
 
-  const handleAddItem = (type: 'asset' | 'liability') => {
+  const [presetCategory, setPresetCategory] = useState<string | undefined>(undefined);
+  const handleAddItem = (type: 'asset' | 'liability', categoryId?: string) => {
     setEditingItem(null);
+    setPresetCategory(categoryId);
     if (type === 'asset') {
       setShowAssetForm(true);
     } else {
@@ -590,6 +592,22 @@ export default function NetWorthPage() {
       {/* Assets Tab */}
       {activeTab === 'assets' && (
         <div className="space-y-8">
+          {/* Sticky Category Toolbar */}
+          <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-slate-700">
+            <div className="flex flex-wrap items-center gap-2">
+              {['cash-savings','investments','real-estate','vehicles','personal-assets','business-assets','retirement-funds'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleAddItem('asset', cat)}
+                  className="px-3 py-1.5 rounded-full text-xs border border-slate-700 hover:bg-muted transition-colors"
+                  title={`Add in ${getCategoryDisplayName(cat)}`}
+                >
+                  + {getCategoryDisplayName(cat)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Assets by Category - Only show categories with items */}
           {Object.entries(
             assets.reduce((acc, asset) => {
@@ -614,7 +632,13 @@ export default function NetWorthPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleAddItem('asset', category)}
+                    className="px-3 py-1.5 rounded-md text-xs border border-green-300/40 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
+                  >
+                    Add in this category
+                  </button>
                   <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-green-200 dark:border-green-800/20">
                     <p className="text-xs text-muted-foreground mb-1">Total Value</p>
                     <p className="text-xl font-bold text-green-600 dark:text-green-400">
@@ -713,6 +737,22 @@ export default function NetWorthPage() {
       {/* Liabilities Tab */}
       {activeTab === 'liabilities' && (
         <div className="space-y-8">
+          {/* Sticky Category Toolbar */}
+          <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-slate-700">
+            <div className="flex flex-wrap items-center gap-2">
+              {['mortgage','credit-cards','student-loans','auto-loans','personal-loans','business-loans','other-debts'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleAddItem('liability', cat)}
+                  className="px-3 py-1.5 rounded-full text-xs border border-slate-700 hover:bg-muted transition-colors"
+                  title={`Add in ${getCategoryDisplayName(cat)}`}
+                >
+                  + {getCategoryDisplayName(cat)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Liabilities by Category - Only show categories with items */}
           {Object.entries(
             liabilities.reduce((acc, liability) => {
@@ -737,7 +777,13 @@ export default function NetWorthPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleAddItem('liability', category)}
+                    className="px-3 py-1.5 rounded-md text-xs border border-red-300/40 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                  >
+                    Add in this category
+                  </button>
                   <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-red-200 dark:border-red-800/20">
                     <p className="text-xs text-muted-foreground mb-1">Outstanding</p>
                     <p className="text-xl font-bold text-red-600 dark:text-red-400">
@@ -858,6 +904,7 @@ export default function NetWorthPage() {
         }}
         onSave={handleAddAsset}
         editingAsset={editingItem as Asset}
+        presetCategoryId={presetCategory}
       />
 
       <LiabilityForm
@@ -868,6 +915,7 @@ export default function NetWorthPage() {
         }}
         onSave={handleAddLiability}
         editingLiability={editingItem as Liability}
+        presetCategoryId={presetCategory}
       />
     </div>
   );

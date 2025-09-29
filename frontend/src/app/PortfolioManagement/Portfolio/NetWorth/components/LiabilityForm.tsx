@@ -38,6 +38,7 @@ interface LiabilityFormProps {
   onClose: () => void;
   onSave: (liability: Liability) => void;
   editingLiability?: Liability | null;
+  presetCategoryId?: string; // optional quick-add preset
 }
 
 const liabilityCategories = [
@@ -130,7 +131,7 @@ const loanTypeInfo = {
   }
 };
 
-export default function LiabilityForm({ isOpen, onClose, onSave, editingLiability }: LiabilityFormProps) {
+export default function LiabilityForm({ isOpen, onClose, onSave, editingLiability, presetCategoryId }: LiabilityFormProps) {
   const [formData, setFormData] = useState<Partial<Liability>>({
     name: '',
     category: '',
@@ -169,7 +170,14 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
         totalMonths: 0,
         description: ''
       });
-      setSelectedCategory(null);
+      // Apply preset category for quick add
+      if (presetCategoryId) {
+        const cat = liabilityCategories.find(c => c.id === presetCategoryId) || null;
+        setSelectedCategory(cat);
+        setFormData(prev => ({ ...prev, category: presetCategoryId }));
+      } else {
+        setSelectedCategory(null);
+      }
     }
   }, [editingLiability, isOpen]);
 
