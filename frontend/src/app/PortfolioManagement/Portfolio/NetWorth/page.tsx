@@ -248,9 +248,10 @@ export default function NetWorthPage() {
     const monthlyCashFlow = monthlyIncome - monthlyPayments;
     
     // Calculate liquidity ratio (cash & equivalents / monthly expenses)
-    const cashAssets = assets.filter(asset => 
-      asset.category === 'Cash & Equivalents' || asset.type === 'Bank Account'
-    ).reduce((sum, asset) => sum + asset.value, 0);
+    // Liquidity: consider cash & savings bucket only
+    const cashAssets = assets
+      .filter(asset => asset.category === 'cash-savings')
+      .reduce((sum, asset) => sum + asset.value, 0);
     const liquidityRatio = monthlyPayments > 0 ? cashAssets / monthlyPayments : 0;
     
     // Calculate health score (0-100)
@@ -609,7 +610,7 @@ export default function NetWorthPage() {
                       {getCategoryDisplayName(category)}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {categoryAssets.length} {categoryAssets.length === 1 ? 'item' : 'items'}
+                      {categoryAssets.length} {categoryAssets.length === 1 ? 'item' : 'items'} • {(financialHealth.totalAssets > 0 ? (categoryAssets.reduce((s, a) => s + a.value, 0) / financialHealth.totalAssets) * 100 : 0).toFixed(1)}%
                     </p>
                   </div>
                 </div>
@@ -732,7 +733,7 @@ export default function NetWorthPage() {
                       {getCategoryDisplayName(category)}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {categoryLiabilities.length} {categoryLiabilities.length === 1 ? 'item' : 'items'}
+                      {categoryLiabilities.length} {categoryLiabilities.length === 1 ? 'item' : 'items'} • {(financialHealth.totalLiabilities > 0 ? (categoryLiabilities.reduce((s, l) => s + l.remainingAmount, 0) / financialHealth.totalLiabilities) * 100 : 0).toFixed(1)}%
                     </p>
                   </div>
                 </div>
@@ -809,7 +810,7 @@ export default function NetWorthPage() {
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">Progress</span>
                           <span className="text-muted-foreground">
-                            {liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} mo
+                            {liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} mo • {Math.floor((liability.remainingMonths || 0) / 12)}y {(liability.remainingMonths || 0) % 12}m left
                           </span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2">

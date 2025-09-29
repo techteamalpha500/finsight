@@ -228,39 +228,51 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset }: Ass
             </div>
           </div>
 
-          {/* Category Selection - Simplified */}
+          {/* Category Selection - Visual Grid */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
-            <select
-              value={formData.category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a category</option>
-              {assetCategories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              {assetCategories.map(category => {
+                const isSelected = formData.category === category.id;
+                return (
+                  <button
+                    type="button"
+                    key={category.id}
+                    onClick={() => handleCategoryChange(category.id)}
+                    className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
+                      isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-100' : 'bg-muted'}`}>{category.icon}</div>
+                    <div className="font-medium">{category.name}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Type Selection - Simplified */}
+          {/* Type Selection - Visual Grid */}
           {selectedCategory && (
             <div>
               <label className="block text-sm font-medium mb-2">Type</label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select a type</option>
-                {selectedCategory.types.map((type: any) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                {selectedCategory.types.map((type: any) => {
+                  const isSelected = formData.type === type.id;
+                  return (
+                    <button
+                      type="button"
+                      key={type.id}
+                      onClick={() => setFormData(prev => ({ ...prev, type: type.id }))}
+                      className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
+                        isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-100' : 'bg-muted'}`}>{type.icon}</div>
+                      <div className="font-medium">{type.name}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

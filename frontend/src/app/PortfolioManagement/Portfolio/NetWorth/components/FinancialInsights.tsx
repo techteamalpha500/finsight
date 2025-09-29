@@ -77,9 +77,9 @@ export default function FinancialInsights({ assets, liabilities }: FinancialInsi
   
   const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
   
-  const cashAssets = assets.filter(asset => 
-    asset.category === 'Cash & Equivalents' || asset.type === 'Bank Account'
-  ).reduce((sum, asset) => sum + asset.value, 0);
+  // Liquidity considers cash-savings bucket only
+  const cashAssets = assets.filter(asset => asset.category === 'cash-savings')
+    .reduce((sum, asset) => sum + asset.value, 0);
   const liquidityRatio = monthlyPayments > 0 ? cashAssets / monthlyPayments : 0;
   
   // High interest debt analysis
@@ -91,7 +91,7 @@ export default function FinancialInsights({ assets, liabilities }: FinancialInsi
   const totalEMIAmount = emiLoans.reduce((sum, l) => sum + l.monthlyPayment, 0);
   
   // Investment analysis
-  const investmentAssets = assets.filter(asset => asset.category === 'Investments');
+  const investmentAssets = assets.filter(asset => asset.category === 'investments');
   const totalInvestmentValue = investmentAssets.reduce((sum, asset) => sum + asset.value, 0);
   const investmentRatio = totalAssets > 0 ? (totalInvestmentValue / totalAssets) * 100 : 0;
   
@@ -103,7 +103,22 @@ export default function FinancialInsights({ assets, liabilities }: FinancialInsi
   const generateInsights = (): Insight[] => {
     const insights: Insight[] = [];
     
-    // High interest debt alert
+    // High interest debt alert (>20% APR on credit cards is urgent)
+    const urgentCreditCards = liabilities.filter(l => l.category === 'credit-cards' && l.interestRate > 20);
+    if (urgentCreditCards.length > 0) {
+      const totalUrgent = urgentCreditCards.reduce((sum, l) => sum + l.remainingAmount, 0);
+      insights.push({
+        id: 'urgent-credit-card',
+        type: 'error',
+        title: 'Urgent: High-APR Credit Cards',
+        description: `₹${totalUrgent.toLocaleString()} at >20% APR. Prioritize payoff immediately.`,
+        action: 'Transfer balance or aggressively repay first',
+        priority: 'high',
+        icon: <AlertTriangle className="w-5 h-5" />
+      });
+    }
+
+    // High interest debt alert (>15%)
     if (highInterestDebt.length > 0) {
       insights.push({
         id: 'high-interest-debt',
@@ -180,6 +195,19 @@ export default function FinancialInsights({ assets, liabilities }: FinancialInsi
         action: 'Consider investing surplus in high-return assets',
         priority: 'medium',
         icon: <TrendingUp className="w-5 h-5" />
+      });
+    }
+
+    // Investment opportunity alert: surplus > 1000
+    if (monthlyCashFlow > 1000) {
+      insights.push({
+        id: 'investment-opportunity',
+        type: 'info',
+        title: 'Investment Opportunity',
+        description: `Monthly surplus of ₹${monthlyCashFlow.toLocaleString()}. Put idle cash to work.`,
+        action: 'Allocate surplus to SIPs or diversified funds',
+        priority: 'medium',
+        icon: <BarChart3 className="w-5 h-5" />
       });
     }
     

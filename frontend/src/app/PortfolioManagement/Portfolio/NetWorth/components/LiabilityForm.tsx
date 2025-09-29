@@ -278,35 +278,50 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
             </div>
           </div>
 
-          {/* Category Selection - Simplified */}
+          {/* Category Selection - Visual Grid */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
-            <select
-              value={formData.category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a category</option>
-              {liabilityCategories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              {liabilityCategories.map(category => {
+                const isSelected = formData.category === category.id;
+                return (
+                  <button
+                    type="button"
+                    key={category.id}
+                    onClick={() => handleCategoryChange(category.id)}
+                    className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
+                      isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-100' : 'bg-muted'}`}>{category.icon}</div>
+                    <div className="font-medium">{category.name}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Loan Type - Simplified */}
+          {/* Loan Type - Visual Toggle */}
           <div>
             <label className="block text-sm font-medium mb-2">Loan Type</label>
-            <select
-              value={formData.type}
-              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'EMI' | 'Regular' }))}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select loan type</option>
-              <option value="EMI">EMI Loan (Fixed monthly payments)</option>
-              <option value="Regular">Regular Debt (Variable payments)</option>
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              {(['EMI','Regular'] as const).map((t) => {
+                const isSelected = formData.type === t;
+                return (
+                  <button
+                    type="button"
+                    key={t}
+                    onClick={() => setFormData(prev => ({ ...prev, type: t }))}
+                    className={`p-3 border rounded-lg text-left transition-colors ${
+                      isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
+                    }`}
+                  >
+                    <div className="font-medium">{loanTypeInfo[t].title}</div>
+                    <div className="text-xs text-muted-foreground">{loanTypeInfo[t].description}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Essential Fields */}
