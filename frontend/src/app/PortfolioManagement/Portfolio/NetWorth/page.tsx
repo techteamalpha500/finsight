@@ -228,8 +228,8 @@ const sampleLiabilities: Liability[] = [
 
 export default function NetWorthPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'assets' | 'liabilities'>('overview');
-  const [assets, setAssets] = useState<Asset[]>(sampleAssets);
-  const [liabilities, setLiabilities] = useState<Liability[]>(sampleLiabilities);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [liabilities, setLiabilities] = useState<Liability[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showLiabilityForm, setShowLiabilityForm] = useState(false);
@@ -589,248 +589,96 @@ export default function NetWorthPage() {
         <FinancialInsights assets={assets} liabilities={liabilities} />
       )}
 
-      {/* Assets Tab */}
+      {/* Assets Tab - Flat List */}
       {activeTab === 'assets' && (
-        <div className="space-y-8">
-          {/* Sticky Category Toolbar */}
-          <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-slate-700">
-            <div className="flex flex-wrap items-center gap-2">
-              {['cash-savings','investments','real-estate','vehicles','personal-assets','business-assets','retirement-funds'].map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => handleAddItem('asset', cat)}
-                  className="px-3 py-1.5 rounded-full text-xs border border-slate-700 hover:bg-muted transition-colors"
-                  title={`Add in ${getCategoryDisplayName(cat)}`}
-                >
-                  + {getCategoryDisplayName(cat)}
-                </button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-muted-foreground">Your Assets</h3>
+            <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
+          </div>
+          {assets.length > 0 ? (
+            <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+              {assets.map(asset => (
+                <div key={asset.id} className="flex items-center gap-3 px-3 py-2">
+                  <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/20">
+                    {getTypeIcon(asset.type)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{asset.name}</p>
+                      <p className="text-sm font-semibold text-green-600 dark:text-green-400 shrink-0">{formatCurrency(asset.value)}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="capitalize truncate">{asset.type.replace('-', ' ')}</span>
+                      {asset.monthlyIncome ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 shrink-0">+{formatCurrency(asset.monthlyIncome)}/mo</span>
+                      ) : null}
+                      {asset.interestRate ? (
+                        <span className="shrink-0">{asset.interestRate}% p.a.</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <button onClick={() => handleEditAsset(asset)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="Edit"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => handleDeleteAsset(asset.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* Assets by Category - Only show categories with items */}
-          {Object.entries(
-            assets.reduce((acc, asset) => {
-              if (!acc[asset.category]) acc[asset.category] = [];
-              acc[asset.category].push(asset);
-              return acc;
-            }, {} as { [key: string]: Asset[] })
-          ).map(([category, categoryAssets], index) => (
-            <div key={category} className="space-y-4">
-              {/* Category Header with Better Sum Display */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/10 dark:to-green-800/10 rounded-lg border border-green-200 dark:border-green-800/20">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-green-200 dark:bg-green-800/30 shadow-sm">
-                    {getCategoryIcon(category)}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">
-                      {getCategoryDisplayName(category)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {categoryAssets.length} {categoryAssets.length === 1 ? 'item' : 'items'} • {(financialHealth.totalAssets > 0 ? (categoryAssets.reduce((s, a) => s + a.value, 0) / financialHealth.totalAssets) * 100 : 0).toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleAddItem('asset', category)}
-                    className="px-3 py-1.5 rounded-md text-xs border border-green-300/40 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
-                  >
-                    Add in this category
-                  </button>
-                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-green-200 dark:border-green-800/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Value</p>
-                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(categoryAssets.reduce((sum, asset) => sum + asset.value, 0))}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Assets Compact List */}
-              <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {categoryAssets.map(asset => (
-                  <div key={asset.id} className="flex items-center gap-3 px-3 py-2">
-                    <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/20">
-                      {getTypeIcon(asset.type)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium truncate">{asset.name}</p>
-                        <p className="text-sm font-semibold text-green-600 dark:text-green-400 shrink-0">{formatCurrency(asset.value)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="capitalize truncate">{asset.type.replace('-', ' ')}</span>
-                        {asset.monthlyIncome ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 shrink-0">+{formatCurrency(asset.monthlyIncome)}/mo</span>
-                        ) : null}
-                        {asset.interestRate ? (
-                          <span className="shrink-0">{asset.interestRate}% p.a.</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleEditAsset(asset)}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAsset(asset.id)}
-                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Empty State */}
-          {assets.length === 0 && (
+          ) : (
             <Card className="p-12 text-center border-0 bg-card/50 backdrop-blur-sm">
               <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/20 w-fit mx-auto mb-4">
                 <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">No Assets Added</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Start building your wealth by adding your first asset. Track your investments, savings, and property.
-              </p>
-              <Button 
-                variant="primary"
-                onClick={() => handleAddItem('asset')}
-                leftIcon={<TrendingUp className="w-4 h-4" />}
-              >
-                Add Your First Asset
-              </Button>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">No Assets Yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your first asset to begin calculating your net worth.</p>
+              <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
             </Card>
           )}
         </div>
       )}
 
-      {/* Liabilities Tab */}
+      {/* Liabilities Tab - Flat List */}
       {activeTab === 'liabilities' && (
-        <div className="space-y-8">
-          {/* Sticky Category Toolbar */}
-          <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-slate-700">
-            <div className="flex flex-wrap items-center gap-2">
-              {['mortgage','credit-cards','student-loans','auto-loans','personal-loans','business-loans','other-debts'].map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => handleAddItem('liability', cat)}
-                  className="px-3 py-1.5 rounded-full text-xs border border-slate-700 hover:bg-muted transition-colors"
-                  title={`Add in ${getCategoryDisplayName(cat)}`}
-                >
-                  + {getCategoryDisplayName(cat)}
-                </button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-muted-foreground">Your Liabilities</h3>
+            <Button variant="primary" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
+          </div>
+          {liabilities.length > 0 ? (
+            <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+              {liabilities.map(liability => (
+                <div key={liability.id} className="flex items-center gap-3 px-3 py-2">
+                  <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/20">
+                    {getTypeIcon(liability.type)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{liability.name}</p>
+                      <p className="text-sm font-semibold text-red-600 dark:text-red-400 shrink-0">{formatCurrency(liability.remainingAmount)}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="capitalize truncate">{liability.type === 'EMI' ? 'EMI loan' : 'Regular debt'}</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 shrink-0">{formatCurrency(liability.monthlyPayment)}/mo</span>
+                      {liability.interestRate ? (
+                        <span className="shrink-0">{liability.interestRate}% p.a.</span>
+                      ) : null}
+                      {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths ? (
+                        <span className="shrink-0">{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} • {Math.floor((liability.remainingMonths || 0) / 12)}y {(liability.remainingMonths || 0) % 12}m left</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <button onClick={() => handleEditLiability(liability)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="Edit"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => handleDeleteLiability(liability.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* Liabilities by Category - Only show categories with items */}
-          {Object.entries(
-            liabilities.reduce((acc, liability) => {
-              if (!acc[liability.category]) acc[liability.category] = [];
-              acc[liability.category].push(liability);
-              return acc;
-            }, {} as { [key: string]: Liability[] })
-          ).map(([category, categoryLiabilities], index) => (
-            <div key={category} className="space-y-4">
-              {/* Category Header with Better Sum Display */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/10 dark:to-red-800/10 rounded-lg border border-red-200 dark:border-red-800/20">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-red-200 dark:bg-red-800/30 shadow-sm">
-                    {getCategoryIcon(category)}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">
-                      {getCategoryDisplayName(category)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {categoryLiabilities.length} {categoryLiabilities.length === 1 ? 'item' : 'items'} • {(financialHealth.totalLiabilities > 0 ? (categoryLiabilities.reduce((s, l) => s + l.remainingAmount, 0) / financialHealth.totalLiabilities) * 100 : 0).toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleAddItem('liability', category)}
-                    className="px-3 py-1.5 rounded-md text-xs border border-red-300/40 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-                  >
-                    Add in this category
-                  </button>
-                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-red-200 dark:border-red-800/20">
-                    <p className="text-xs text-muted-foreground mb-1">Outstanding</p>
-                    <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                      {formatCurrency(categoryLiabilities.reduce((sum, l) => sum + l.remainingAmount, 0))}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Liabilities Compact List */}
-              <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {categoryLiabilities.map(liability => (
-                  <div key={liability.id} className="flex items-center gap-3 px-3 py-2">
-                    <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/20">
-                      {getTypeIcon(liability.type)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium truncate">{liability.name}</p>
-                        <p className="text-sm font-semibold text-red-600 dark:text-red-400 shrink-0">{formatCurrency(liability.remainingAmount)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="capitalize truncate">{liability.type === 'EMI' ? 'EMI loan' : 'Regular debt'}</span>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 shrink-0">{formatCurrency(liability.monthlyPayment)}/mo</span>
-                        {liability.interestRate ? (
-                          <span className="shrink-0">{liability.interestRate}% p.a.</span>
-                        ) : null}
-                        {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths ? (
-                          <span className="shrink-0">{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} • {Math.floor((liability.remainingMonths || 0) / 12)}y {(liability.remainingMonths || 0) % 12}m left</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleEditLiability(liability)}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLiability(liability.id)}
-                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Empty State */}
-          {liabilities.length === 0 && (
+          ) : (
             <Card className="p-12 text-center border-0 bg-card/50 backdrop-blur-sm">
               <div className="p-4 rounded-full bg-red-100 dark:bg-red-900/20 w-fit mx-auto mb-4">
                 <TrendingDown className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">No Liabilities Added</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Track your debts and loans to better manage your finances and improve your financial health.
-              </p>
-              <Button 
-                variant="primary"
-                onClick={() => handleAddItem('liability')}
-                leftIcon={<TrendingDown className="w-4 h-4" />}
-              >
-                Add Your First Liability
-              </Button>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">No Liabilities Yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your first liability to complete your net worth picture.</p>
+              <Button variant="primary" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
             </Card>
           )}
         </div>
