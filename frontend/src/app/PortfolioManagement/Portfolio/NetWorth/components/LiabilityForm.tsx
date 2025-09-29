@@ -74,6 +74,8 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
   });
 
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [useCustomName, setUseCustomName] = useState<boolean>(false);
+  const [selectedNameOption, setSelectedNameOption] = useState<string>('');
 
   React.useEffect(() => {
     if (editingLiability) {
@@ -87,6 +89,8 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
       });
       const category = liabilityCategories.find(cat => cat.id === editingLiability.category);
       setSelectedCategory(category);
+      setUseCustomName(true);
+      setSelectedNameOption('custom');
     } else {
       setFormData({ name: '', category: '', type: 'Regular', remainingAmount: 0, monthlyPayment: 0, interestRate: 0 });
       if (presetCategoryId) {
@@ -96,6 +100,8 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
       } else {
         setSelectedCategory(null);
       }
+      setUseCustomName(false);
+      setSelectedNameOption('');
     }
   }, [editingLiability, isOpen]);
 
@@ -103,6 +109,21 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
     const category = liabilityCategories.find(cat => cat.id === categoryId);
     setSelectedCategory(category);
     setFormData(prev => ({ ...prev, category: categoryId }));
+    setUseCustomName(false);
+    setSelectedNameOption('');
+    setFormData(prev => ({ ...prev, name: '' }));
+  };
+
+  const handleSuggestedNameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedNameOption(value);
+    if (value === 'custom') {
+      setUseCustomName(true);
+      setFormData(prev => ({ ...prev, name: '' }));
+    } else if (value) {
+      setUseCustomName(false);
+      setFormData(prev => ({ ...prev, name: value }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -167,22 +188,33 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
             </div>
           </div>
 
-          {/* Basic Information */}
+          {/* Basic Information with suggestion dropdown and optional custom input */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Name</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Chase Checking Account"
-                list="liability-name-suggestions"
-                required
-              />
-              <datalist id="liability-name-suggestions">
-                {(liabilityNameSuggestions[formData.category || ''] || []).map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
+              <div className="space-y-2">
+                <select
+                  value={selectedNameOption}
+                  onChange={handleSuggestedNameChange}
+                  disabled={!formData.category}
+                  className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    {formData.category ? 'Select from suggestions' : 'Select category first'}
+                  </option>
+                  {(liabilityNameSuggestions[formData.category || ''] || []).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  <option value="custom">Custom Entry</option>
+                </select>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter custom name"
+                  disabled={!useCustomName}
+                  required
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Value ($)</label>

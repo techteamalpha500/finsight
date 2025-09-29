@@ -184,12 +184,16 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
   });
 
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [useCustomName, setUseCustomName] = useState<boolean>(false);
+  const [selectedNameOption, setSelectedNameOption] = useState<string>('');
 
   React.useEffect(() => {
     if (editingAsset) {
       setFormData({ id: editingAsset.id, name: editingAsset.name, category: editingAsset.category, value: editingAsset.value, type: 'item' });
       const category = assetCategories.find(cat => cat.id === editingAsset.category);
       setSelectedCategory(category);
+      setUseCustomName(true);
+      setSelectedNameOption('custom');
     } else {
       setFormData({ name: '', category: '', value: 0, type: 'item' });
       // Apply preset category for quick add
@@ -200,6 +204,8 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
       } else {
         setSelectedCategory(null);
       }
+      setUseCustomName(false);
+      setSelectedNameOption('');
     }
   }, [editingAsset, isOpen]);
 
@@ -207,6 +213,22 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
     const category = assetCategories.find(cat => cat.id === categoryId);
     setSelectedCategory(category);
     setFormData(prev => ({ ...prev, category: categoryId }));
+    // Reset name-related selections on category change
+    setUseCustomName(false);
+    setSelectedNameOption('');
+    setFormData(prev => ({ ...prev, name: '' }));
+  };
+
+  const handleSuggestedNameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedNameOption(value);
+    if (value === 'custom') {
+      setUseCustomName(true);
+      setFormData(prev => ({ ...prev, name: '' }));
+    } else if (value) {
+      setUseCustomName(false);
+      setFormData(prev => ({ ...prev, name: value }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -265,22 +287,33 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
             </div>
           </div>
 
-          {/* Basic Information: Name & Value only */}
+          {/* Basic Information: Name selector then optional custom input */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Name</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Chase Checking Account"
-                list="asset-name-suggestions"
-                required
-              />
-              <datalist id="asset-name-suggestions">
-                {(assetNameSuggestions[formData.category || ''] || []).map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
+              <div className="space-y-2">
+                <select
+                  value={selectedNameOption}
+                  onChange={handleSuggestedNameChange}
+                  disabled={!formData.category}
+                  className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    {formData.category ? 'Select from suggestions' : 'Select category first'}
+                  </option>
+                  {(assetNameSuggestions[formData.category || ''] || []).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  <option value="custom">Custom Entry</option>
+                </select>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter custom name"
+                  disabled={!useCustomName}
+                  required
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Value ($)</label>
