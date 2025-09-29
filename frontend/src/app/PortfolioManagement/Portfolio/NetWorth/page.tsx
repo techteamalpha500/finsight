@@ -573,38 +573,50 @@ export default function NetWorthPage() {
         <FinancialInsights assets={assets} liabilities={liabilities} />
       )}
 
-      {/* Assets Tab - Flat List */}
+      {/* Assets Tab - Grouped Cards by Category */}
       {activeTab === 'assets' && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">Your Assets</h3>
-          {assets.length > 0 ? (
-            <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-              {assets.map(asset => (
-                <div key={asset.id} className="flex items-center gap-3 px-3 py-2">
-                  <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/20">
-                    {getTypeIcon(asset.type)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium truncate">{asset.name}</p>
-                      <p className="text-sm font-semibold text-green-600 dark:text-green-400 shrink-0">{formatCurrency(asset.value)}</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="capitalize truncate">{asset.type.replace('-', ' ')}</span>
-                      {asset.monthlyIncome ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 shrink-0">+{formatCurrency(asset.monthlyIncome)}/mo</span>
-                      ) : null}
-                      {asset.interestRate ? (
-                        <span className="shrink-0">{asset.interestRate}% p.a.</span>
-                      ) : null}
+        <div className="space-y-6">
+          {Object.entries(
+            assets.reduce((acc, a) => {
+              (acc[a.category] = acc[a.category] || []).push(a);
+              return acc;
+            }, {} as Record<string, Asset[]>)
+          ).map(([category, list]) => {
+            const total = list.reduce((s, a) => s + a.value, 0);
+            return (
+              <Card key={category} className="p-4 border-slate-700 bg-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-slate-700">{getCategoryIcon(category)}</div>
+                    <div>
+                      <h3 className="text-base font-semibold">{getCategoryDisplayName(category)}</h3>
+                      <p className="text-xs text-slate-400">{list.length} {list.length === 1 ? 'item' : 'items'}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleEditAsset(asset)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="Edit"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleDeleteAsset(asset.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Total</p>
+                    <p className="text-sm font-bold text-green-400">{formatCurrency(total)}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {list.map(a => (
+                    <div key={a.id} className="flex items-center gap-3 p-3 rounded-md bg-slate-900 border border-slate-700">
+                      <div className="p-1.5 rounded-md bg-green-900/30">{getTypeIcon(a.type)}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium truncate">{a.name}</p>
+                          <p className="text-sm font-semibold text-green-400 shrink-0">{formatCurrency(a.value)}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleEditAsset(a)} className="p-1.5 rounded hover:bg-slate-800 text-slate-300" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteAsset(a.id)} className="p-1.5 rounded hover:bg-red-900/20 text-slate-300 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })}
+          {assets.length === 0 && (
             <Card className="p-12 text-center border-0 bg-card/50 backdrop-blur-sm">
               <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/20 w-fit mx-auto mb-4">
                 <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -617,39 +629,53 @@ export default function NetWorthPage() {
         </div>
       )}
 
-      {/* Liabilities Tab - Flat List */}
+      {/* Liabilities Tab - Grouped Cards by Category */}
       {activeTab === 'liabilities' && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">Your Liabilities</h3>
-          {liabilities.length > 0 ? (
-            <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-              {liabilities.map(liability => (
-                <div key={liability.id} className="flex items-center gap-3 px-3 py-2">
-                  <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/20">
-                    {getTypeIcon(liability.type)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium truncate">{liability.name}</p>
-                      <p className="text-sm font-semibold text-red-600 dark:text-red-400 shrink-0">{formatCurrency(liability.remainingAmount)}</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="capitalize truncate">{liability.type === 'EMI' ? 'EMI loan' : 'Regular debt'}</span>
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 shrink-0">{formatCurrency(liability.monthlyPayment)}/mo</span>
-                      {liability.interestRate ? (
-                        <span className="shrink-0">{liability.interestRate}% p.a.</span>
-                      ) : null}
-                      {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths ? (
-                        <span className="shrink-0">{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} • {Math.floor((liability.remainingMonths || 0) / 12)}y {(liability.remainingMonths || 0) % 12}m left</span>
-                      ) : null}
+        <div className="space-y-6">
+          {Object.entries(
+            liabilities.reduce((acc, l) => {
+              (acc[l.category] = acc[l.category] || []).push(l);
+              return acc;
+            }, {} as Record<string, Liability[]>)
+          ).map(([category, list]) => {
+            const total = list.reduce((s, l) => s + l.remainingAmount, 0);
+            return (
+              <Card key={category} className="p-4 border-slate-700 bg-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-slate-700">{getCategoryIcon(category)}</div>
+                    <div>
+                      <h3 className="text-base font-semibold">{getCategoryDisplayName(category)}</h3>
+                      <p className="text-xs text-slate-400">{list.length} {list.length === 1 ? 'item' : 'items'}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleEditLiability(liability)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="Edit"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleDeleteLiability(liability.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Outstanding</p>
+                    <p className="text-sm font-bold text-red-400">{formatCurrency(total)}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {list.map(l => (
+                    <div key={l.id} className="flex items-center gap-3 p-3 rounded-md bg-slate-900 border border-slate-700">
+                      <div className="p-1.5 rounded-md bg-red-900/30">{getTypeIcon(l.type)}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium truncate">{l.name}</p>
+                          <p className="text-sm font-semibold text-red-400 shrink-0">{formatCurrency(l.remainingAmount)}</p>
+                        </div>
+                        {l.monthlyPayment ? (
+                          <p className="text-xs text-slate-400">{formatCurrency(l.monthlyPayment)}/mo</p>
+                        ) : null}
+                      </div>
+                      <button onClick={() => handleEditLiability(l)} className="p-1.5 rounded hover:bg-slate-800 text-slate-300" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteLiability(l.id)} className="p-1.5 rounded hover:bg-red-900/20 text-slate-300 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })}
+          {liabilities.length === 0 && (
             <Card className="p-12 text-center border-0 bg-card/50 backdrop-blur-sm">
               <div className="p-4 rounded-full bg-red-100 dark:bg-red-900/20 w-fit mx-auto mb-4">
                 <TrendingDown className="w-8 h-8 text-red-600 dark:text-red-400" />

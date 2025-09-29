@@ -127,42 +127,28 @@ const assetCategories = [
 ];
 
 export default function AssetForm({ isOpen, onClose, onSave, editingAsset, presetCategoryId }: AssetFormProps) {
+  // Only keep fields we actually need now
   const [formData, setFormData] = useState<Partial<Asset>>({
     name: '',
     category: '',
-    type: '',
     value: 0,
-    monthlyIncome: 0,
-    interestRate: 0,
-    purchaseDate: '',
-    maturityDate: '',
-    description: ''
+    type: 'item'
   });
 
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
 
   React.useEffect(() => {
     if (editingAsset) {
-      setFormData(editingAsset);
+      setFormData({ id: editingAsset.id, name: editingAsset.name, category: editingAsset.category, value: editingAsset.value, type: 'item' });
       const category = assetCategories.find(cat => cat.id === editingAsset.category);
       setSelectedCategory(category);
     } else {
-      setFormData({
-        name: '',
-        category: '',
-        type: '',
-        value: 0,
-        monthlyIncome: 0,
-        interestRate: 0,
-        purchaseDate: '',
-        maturityDate: '',
-        description: ''
-      });
+      setFormData({ name: '', category: '', value: 0, type: 'item' });
       // Apply preset category for quick add
       if (presetCategoryId) {
         const cat = assetCategories.find(c => c.id === presetCategoryId) || null;
         setSelectedCategory(cat);
-        setFormData(prev => ({ ...prev, category: presetCategoryId, type: '' }));
+        setFormData(prev => ({ ...prev, category: presetCategoryId }));
       } else {
         setSelectedCategory(null);
       }
@@ -172,12 +158,12 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
   const handleCategoryChange = (categoryId: string) => {
     const category = assetCategories.find(cat => cat.id === categoryId);
     setSelectedCategory(category);
-    setFormData(prev => ({ ...prev, category: categoryId, type: '' }));
+    setFormData(prev => ({ ...prev, category: categoryId }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.category || !formData.type || !formData.value) {
+    if (!formData.name || !formData.category || !formData.value) {
       return;
     }
 
@@ -185,13 +171,8 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
       id: editingAsset?.id || Date.now().toString(),
       name: formData.name,
       category: formData.category,
-      type: formData.type,
-      value: formData.value,
-      monthlyIncome: formData.monthlyIncome || 0,
-      interestRate: formData.interestRate || 0,
-      purchaseDate: formData.purchaseDate,
-      maturityDate: formData.maturityDate,
-      description: formData.description
+      type: 'item',
+      value: formData.value
     };
 
     onSave(asset);
@@ -213,30 +194,7 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Asset Name</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Primary Residence"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Current Value (₹)</label>
-              <Input
-                type="number"
-                value={formData.value}
-                onChange={(e) => setFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                placeholder="Enter current value"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Category Selection - Visual Grid */}
+          {/* Category Selection - Visual Grid (first) */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
             <div className="grid grid-cols-2 gap-3">
@@ -259,100 +217,27 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
             </div>
           </div>
 
-          {/* Type Selection - Visual Grid */}
-          {selectedCategory && (
+          {/* Basic Information: Name & Value only */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Type</label>
-              <div className="grid grid-cols-2 gap-3">
-                {selectedCategory.types.map((type: any) => {
-                  const isSelected = formData.type === type.id;
-                  return (
-                    <button
-                      type="button"
-                      key={type.id}
-                      onClick={() => setFormData(prev => ({ ...prev, type: type.id }))}
-                      className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
-                        isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
-                      }`}
-                    >
-                      <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-100' : 'bg-muted'}`}>{type.icon}</div>
-                      <div className="font-medium">{type.name}</div>
-                    </button>
-                  );
-                })}
-              </div>
+              <label className="block text-sm font-medium mb-2">Asset Name</label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Savings Account"
+                required
+              />
             </div>
-          )}
-
-          {/* Optional Fields - Collapsible */}
-          <div className="space-y-3">
-            <details className="group">
-              <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
-                Additional Details (Optional)
-              </summary>
-              <div className="mt-3 space-y-3 pl-4 border-l-2 border-gray-200">
-                {/* Monthly Income */}
-                {(formData.category === 'investments' || formData.category === 'real-estate') && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Monthly Income (₹)</label>
-                    <Input
-                      type="number"
-                      value={formData.monthlyIncome}
-                      onChange={(e) => setFormData(prev => ({ ...prev, monthlyIncome: parseFloat(e.target.value) || 0 }))}
-                      placeholder="Monthly income from this asset"
-                    />
-                  </div>
-                )}
-
-                {/* Interest Rate */}
-                {(formData.category === 'cash-savings' || formData.category === 'investments') && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Interest Rate (%)</label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={formData.interestRate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))}
-                      placeholder="Annual interest rate"
-                    />
-                  </div>
-                )}
-
-                {/* Dates */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Purchase Date</label>
-                    <Input
-                      type="date"
-                      value={formData.purchaseDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
-                    />
-                  </div>
-                  {(formData.type === 'certificate-deposit' || formData.type === 'bonds') && (
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Maturity Date</label>
-                      <Input
-                        type="date"
-                        value={formData.maturityDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, maturityDate: e.target.value }))}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Additional details about this asset"
-                    className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    rows={2}
-                  />
-                </div>
-              </div>
-            </details>
+            <div>
+              <label className="block text-sm font-medium mb-2">Value (₹)</label>
+              <Input
+                type="number"
+                value={formData.value}
+                onChange={(e) => setFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
+                placeholder="Enter amount"
+                required
+              />
+            </div>
           </div>
 
           {/* Form Actions */}
