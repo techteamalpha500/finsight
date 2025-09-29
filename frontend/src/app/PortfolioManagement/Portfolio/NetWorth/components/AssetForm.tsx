@@ -186,7 +186,7 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
       <Card className="w-full max-w-2xl">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">
-            {editingAsset ? 'Edit Asset' : 'Add New Asset'}
+            {editingAsset ? 'Edit Asset' : 'Add Asset'}
           </h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -196,7 +196,7 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Category Selection - Visual Grid (first) */}
           <div>
-            <label className="block text-sm font-medium mb-2">Category</label>
+            <label className="block text-sm font-medium mb-2">Select Category</label>
             <div className="grid grid-cols-2 gap-3">
               {assetCategories.map(category => {
                 const isSelected = formData.category === category.id;
@@ -206,10 +206,10 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
                     key={category.id}
                     onClick={() => handleCategoryChange(category.id)}
                     className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
-                      isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
+                      isSelected ? 'bg-slate-700 border-purple-600' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
                     }`}
                   >
-                    <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-100' : 'bg-muted'}`}>{category.icon}</div>
+                    <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-200'}`}>{category.icon}</div>
                     <div className="font-medium">{category.name}</div>
                   </button>
                 );
@@ -220,33 +220,33 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
           {/* Basic Information: Name & Value only */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Asset Name</label>
+              <label className="block text-sm font-medium mb-2">Name</label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Savings Account"
+                placeholder="e.g., Chase Checking Account"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Value (₹)</label>
+              <label className="block text-sm font-medium mb-2">Value ($)</label>
               <Input
                 type="number"
                 value={formData.value}
                 onChange={(e) => setFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                placeholder="Enter amount"
+                placeholder="0.00"
                 required
               />
             </div>
           </div>
 
           {/* Form Actions */}
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-              {editingAsset ? 'Update Asset' : 'Add Asset'}
+            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+              {editingAsset ? 'Update' : 'Add'}
             </Button>
           </div>
         </form>

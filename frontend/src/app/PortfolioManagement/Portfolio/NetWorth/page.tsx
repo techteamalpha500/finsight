@@ -456,41 +456,41 @@ export default function NetWorthPage() {
         </div>
       </div>
 
-      {/* Always Visible KPIs */}
+      {/* KPI Tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 bg-slate-800 border border-slate-700">
+        <Card className="p-4 bg-emerald-900/40 border border-emerald-800">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Total Assets</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+              <p className="text-lg font-bold text-emerald-400">
                 {formatCurrency(financialHealth.totalAssets)}
               </p>
             </div>
-            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <TrendingUp className="w-5 h-5 text-emerald-400" />
           </div>
         </Card>
 
-        <Card className="p-4 bg-slate-800 border border-slate-700">
+        <Card className="p-4 bg-rose-900/40 border border-rose-800">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Total Liabilities</p>
-              <p className="text-lg font-bold text-red-600 dark:text-red-400">
+              <p className="text-lg font-bold text-rose-400">
                 {formatCurrency(financialHealth.totalLiabilities)}
               </p>
             </div>
-            <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <TrendingDown className="w-5 h-5 text-rose-400" />
           </div>
         </Card>
 
-        <Card className="p-4 bg-slate-800 border border-slate-700">
+        <Card className="p-4 bg-violet-900/50 border border-violet-800">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Net Worth</p>
-              <p className={`text-lg font-bold ${financialHealth.netWorth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <p className={`text-lg font-bold ${financialHealth.netWorth >= 0 ? 'text-white' : 'text-rose-200'}`}>
                 {formatCurrency(financialHealth.netWorth)}
               </p>
             </div>
-            <DollarSign className="w-5 h-5 text-purple-500" />
+            <DollarSign className="w-5 h-5 text-purple-300" />
           </div>
         </Card>
 
@@ -498,7 +498,7 @@ export default function NetWorthPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Monthly Cash Flow</p>
-              <p className={`text-lg font-bold ${financialHealth.monthlyCashFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <p className={`text-lg font-bold ${financialHealth.monthlyCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}> 
                 {formatCurrency(financialHealth.monthlyCashFlow)}
               </p>
             </div>
@@ -507,7 +507,7 @@ export default function NetWorthPage() {
         </Card>
       </div>
 
-      {/* Additional KPIs Row */}
+      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
@@ -544,9 +544,33 @@ export default function NetWorthPage() {
         </Card>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-slate-700">
-        <div className="flex gap-1 sm:gap-2">
+      {/* Smart Financial Insights */}
+      <Card className="p-4 border border-slate-700 bg-slate-800">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <span className="text-sm font-medium">Smart Financial Insights</span>
+        </div>
+        {/* High-interest credit card insight */}
+        {(() => {
+          const highCards = liabilities.filter(l => l.category === 'credit-cards' && l.interestRate > 20);
+          if (highCards.length === 0) return null;
+          return (
+            <div className="rounded-md border border-slate-700 bg-slate-900 p-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-400" />
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Pay Off High-Interest Credit Cards</div>
+                  <div className="text-xs text-muted-foreground">You have {highCards.length} credit card(s) with interest rates above 20%. Consider paying these off first.</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Card>
+
+      {/* Tab Navigation - Segmented control */}
+      <div className="flex justify-center">
+        <div className="inline-flex w-full max-w-md items-center gap-1 rounded-full bg-slate-800 p-1">
           {[
             { id: 'overview', name: 'Overview', icon: <PieChart className="w-4 h-4" /> },
             { id: 'assets', name: 'Assets', icon: <TrendingUp className="w-4 h-4" /> },
@@ -555,10 +579,10 @@ export default function NetWorthPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-t-md transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs sm:text-sm rounded-full transition-colors ${
                 activeTab === tab.id 
-                  ? 'bg-muted font-medium border-b-2 border-purple-600' 
-                  : 'text-foreground hover:bg-muted'
+                  ? 'bg-purple-600 text-white' 
+                  : 'text-foreground hover:bg-slate-700'
               }`}
             >
               {tab.icon}
@@ -575,7 +599,15 @@ export default function NetWorthPage() {
 
       {/* Assets Tab - Grouped Cards by Category */}
       {activeTab === 'assets' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-base font-semibold">Assets</h2>
+            </div>
+            <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
+          </div>
+          <div className="space-y-6">
           {Object.entries(
             assets.reduce((acc, a) => {
               (acc[a.category] = acc[a.category] || []).push(a);
@@ -605,7 +637,14 @@ export default function NetWorthPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium truncate">{a.name}</p>
-                          <p className="text-sm font-semibold text-green-400 shrink-0">{formatCurrency(a.value)}</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {a.monthlyIncome ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-900/30 text-emerald-400">
+                                +{formatCurrency(a.monthlyIncome)}/mo
+                              </span>
+                            ) : null}
+                            <p className="text-sm font-semibold text-green-400">{formatCurrency(a.value)}</p>
+                          </div>
                         </div>
                       </div>
                       <button onClick={() => handleEditAsset(a)} className="p-1.5 rounded hover:bg-slate-800 text-slate-300" title="Edit"><Edit className="w-4 h-4" /></button>
@@ -626,12 +665,21 @@ export default function NetWorthPage() {
               <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
             </Card>
           )}
+          </div>
         </div>
       )}
 
       {/* Liabilities Tab - Grouped Cards by Category */}
       {activeTab === 'liabilities' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-rose-400" />
+              <h2 className="text-base font-semibold">Liabilities</h2>
+            </div>
+            <Button variant="destructive" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
+          </div>
+          <div className="space-y-6">
           {Object.entries(
             liabilities.reduce((acc, l) => {
               (acc[l.category] = acc[l.category] || []).push(l);
@@ -685,6 +733,7 @@ export default function NetWorthPage() {
               <Button variant="primary" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
             </Card>
           )}
+          </div>
         </div>
       )}
 

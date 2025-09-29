@@ -53,9 +53,10 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
   const [formData, setFormData] = useState<Partial<Liability>>({
     name: '',
     category: '',
-    type: 'EMI',
+    type: 'Regular',
     remainingAmount: 0,
-    monthlyPayment: 0
+    monthlyPayment: 0,
+    interestRate: 0
   });
 
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
@@ -73,7 +74,7 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
       const category = liabilityCategories.find(cat => cat.id === editingLiability.category);
       setSelectedCategory(category);
     } else {
-      setFormData({ name: '', category: '', type: 'EMI', remainingAmount: 0, monthlyPayment: 0 });
+      setFormData({ name: '', category: '', type: 'Regular', remainingAmount: 0, monthlyPayment: 0, interestRate: 0 });
       if (presetCategoryId) {
         const cat = liabilityCategories.find(c => c.id === presetCategoryId) || null;
         setSelectedCategory(cat);
@@ -104,7 +105,7 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
       principalAmount: 0,
       remainingAmount: formData.remainingAmount,
       monthlyPayment: formData.monthlyPayment || 0,
-      interestRate: 0,
+      interestRate: formData.interestRate || 0,
       startDate: '',
       endDate: '',
       remainingMonths: 0,
@@ -121,7 +122,7 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
       <Card className="w-full max-w-2xl">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">
-            {editingLiability ? 'Edit Liability' : 'Add New Liability'}
+            {editingLiability ? 'Edit Liability' : 'Add Liability'}
           </h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -131,7 +132,7 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Category Selection - Visual Grid (first) */}
           <div>
-            <label className="block text-sm font-medium mb-2">Category</label>
+            <label className="block text-sm font-medium mb-2">Select Category</label>
             <div className="grid grid-cols-2 gap-3">
               {liabilityCategories.map(category => {
                 const isSelected = formData.category === category.id;
@@ -141,10 +142,10 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
                     key={category.id}
                     onClick={() => handleCategoryChange(category.id)}
                     className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
-                      isSelected ? 'border-purple-600 bg-purple-50' : 'hover:bg-muted'
+                      isSelected ? 'bg-slate-700 border-purple-600' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
                     }`}
                   >
-                    <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-100' : 'bg-muted'}`}>{category.icon}</div>
+                    <div className={`p-2 rounded-md ${isSelected ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-200'}`}>{category.icon}</div>
                     <div className="font-medium">{category.name}</div>
                   </button>
                 );
@@ -152,36 +153,70 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
             </div>
           </div>
 
-          {/* Basic Information: Name & Outstanding only */}
+          {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Liability Name</label>
+              <label className="block text-sm font-medium mb-2">Name</label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Home Mortgage"
+                placeholder="e.g., Chase Checking Account"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Outstanding Amount (₹)</label>
+              <label className="block text-sm font-medium mb-2">Value ($)</label>
               <Input
                 type="number"
                 value={formData.remainingAmount}
                 onChange={(e) => setFormData(prev => ({ ...prev, remainingAmount: parseFloat(e.target.value) || 0 }))}
-                placeholder="Enter amount"
+                placeholder="0.00"
                 required
               />
             </div>
           </div>
 
+          {/* Debt Type Segmented */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Debt Type</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, type: 'Regular' }))}
+                className={`flex flex-col items-center justify-center gap-1 p-3 rounded-lg border ${formData.type === 'Regular' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}
+              >
+                <span className="text-sm font-medium">Regular Debt</span>
+                <span className="text-[10px] opacity-80">Credit cards, etc.</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, type: 'EMI' }))}
+                className={`flex flex-col items-center justify-center gap-1 p-3 rounded-lg border ${formData.type === 'EMI' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}
+              >
+                <span className="text-sm font-medium">EMI Loan</span>
+                <span className="text-[10px] opacity-80">Monthly payments</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Optional Interest Rate */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Interest Rate (%) - Optional</label>
+            <Input
+              type="number"
+              value={formData.interestRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))}
+              placeholder="19.5"
+            />
+          </div>
+
           {/* Form Actions */}
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-red-600 hover:bg-red-700">
-              {editingLiability ? 'Update Liability' : 'Add Liability'}
+            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+              {editingLiability ? 'Update' : 'Add'}
             </Button>
           </div>
         </form>
