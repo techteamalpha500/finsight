@@ -278,6 +278,14 @@ export default function NetWorthPage() {
 
   const financialHealth = calculateFinancialHealth();
 
+  // UI: color coding for Debt-to-Asset KPI
+  const debtRatioColor =
+    financialHealth.debtToAssetRatio < 20
+      ? 'text-green-600 dark:text-green-400'
+      : financialHealth.debtToAssetRatio < 40
+      ? 'text-yellow-600 dark:text-yellow-400'
+      : 'text-red-600 dark:text-red-400';
+
   const getHealthColor = (status: string) => {
     switch (status) {
       case 'Excellent': return 'text-green-600';
@@ -436,7 +444,7 @@ export default function NetWorthPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -463,7 +471,7 @@ export default function NetWorthPage() {
 
       {/* Always Visible KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Total Assets</p>
@@ -471,13 +479,11 @@ export default function NetWorthPage() {
                 {formatCurrency(financialHealth.totalAssets)}
               </p>
             </div>
-            <div className="p-2 rounded-lg bg-green-200 dark:bg-green-800/30">
-              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
         </Card>
 
-        <Card className="p-4 border-0 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Total Liabilities</p>
@@ -485,13 +491,11 @@ export default function NetWorthPage() {
                 {formatCurrency(financialHealth.totalLiabilities)}
               </p>
             </div>
-            <div className="p-2 rounded-lg bg-red-200 dark:bg-red-800/30">
-              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
+            <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
           </div>
         </Card>
 
-        <Card className="p-4 border-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Net Worth</p>
@@ -499,13 +503,11 @@ export default function NetWorthPage() {
                 {formatCurrency(financialHealth.netWorth)}
               </p>
             </div>
-            <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800/30">
-              <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
+            <DollarSign className="w-5 h-5 text-purple-500" />
           </div>
         </Card>
 
-        <Card className="p-4 border-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Monthly Cash Flow</p>
@@ -513,30 +515,24 @@ export default function NetWorthPage() {
                 {formatCurrency(financialHealth.monthlyCashFlow)}
               </p>
             </div>
-            <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800/30">
-              <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
+            <BarChart3 className="w-5 h-5 text-slate-300" />
           </div>
         </Card>
       </div>
 
       {/* Additional KPIs Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 border-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Debt-to-Asset Ratio</p>
-              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                {financialHealth.debtToAssetRatio.toFixed(1)}%
-              </p>
+              <p className={`text-lg font-bold ${debtRatioColor}`}>{financialHealth.debtToAssetRatio.toFixed(1)}%</p>
             </div>
-            <div className="p-2 rounded-lg bg-orange-200 dark:bg-orange-800/30">
-              <Target className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-            </div>
+            <Target className="w-5 h-5 text-slate-300" />
           </div>
         </Card>
 
-        <Card className="p-4 border-0 bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Liquidity Ratio</p>
@@ -544,13 +540,11 @@ export default function NetWorthPage() {
                 {financialHealth.liquidityRatio.toFixed(1)} months
               </p>
             </div>
-            <div className="p-2 rounded-lg bg-cyan-200 dark:bg-cyan-800/30">
-              <Shield className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-            </div>
+            <Shield className="w-5 h-5 text-slate-300" />
           </div>
         </Card>
 
-        <Card className="p-4 border-0 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 backdrop-blur-sm">
+        <Card className="p-4 bg-slate-800 border border-slate-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Monthly Debt Payments</p>
@@ -558,15 +552,13 @@ export default function NetWorthPage() {
                 {formatCurrency(liabilities.reduce((sum, l) => sum + l.monthlyPayment, 0))}
               </p>
             </div>
-            <div className="p-2 rounded-lg bg-pink-200 dark:bg-pink-800/30">
-              <CreditCard className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-            </div>
+            <CreditCard className="w-5 h-5 text-slate-300" />
           </div>
         </Card>
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-border">
+      <div className="border-b border-slate-700">
         <div className="flex gap-1 sm:gap-2">
           {[
             { id: 'overview', name: 'Overview', icon: <PieChart className="w-4 h-4" /> },
@@ -578,7 +570,7 @@ export default function NetWorthPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-t-md transition-colors ${
                 activeTab === tab.id 
-                  ? 'bg-muted font-medium border-b-2 border-blue-600' 
+                  ? 'bg-muted font-medium border-b-2 border-purple-600' 
                   : 'text-foreground hover:bg-muted'
               }`}
             >
