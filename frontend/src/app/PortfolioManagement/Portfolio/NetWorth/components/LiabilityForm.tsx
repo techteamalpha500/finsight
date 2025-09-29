@@ -49,6 +49,20 @@ const liabilityCategories = [
   { id: 'other-debts', name: 'Other Debts', icon: <DollarSign className="w-5 h-5 text-slate-300" /> }
 ];
 
+// Suggestions for the Name field based on selected liability category
+const liabilityNameSuggestions: Record<string, string[]> = {
+  // Loans
+  'mortgage': ['Home Loan'],
+  'auto-loans': ['Car Loan', 'Two-Wheeler Loan'],
+  'personal-loans': ['Personal Loan'],
+  'student-loans': ['Education Loan'],
+  'business-loans': ['Business Loan'],
+  // Credit cards & overdrafts
+  'credit-cards': ['Credit Card Outstanding', 'Overdraft Facility'],
+  // Others
+  'other-debts': ['Buy-Now-Pay-Later (BNPL)', 'Informal Debt', 'Tax Dues']
+};
+
 export default function LiabilityForm({ isOpen, onClose, onSave, editingLiability, presetCategoryId }: LiabilityFormProps) {
   const [formData, setFormData] = useState<Partial<Liability>>({
     name: '',
@@ -161,8 +175,14 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Chase Checking Account"
+                list="liability-name-suggestions"
                 required
               />
+              <datalist id="liability-name-suggestions">
+                {(liabilityNameSuggestions[formData.category || ''] || []).map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Value ($)</label>

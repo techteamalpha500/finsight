@@ -126,6 +126,54 @@ const assetCategories = [
   }
 ];
 
+// Suggestions for the Name field based on selected category
+const assetNameSuggestions: Record<string, string[]> = {
+  'cash-savings': [
+    'Bank Account - Savings',
+    'Bank Account - Current',
+    'Fixed Deposit (FD)',
+    'Recurring Deposit (RD)',
+    'Digital Wallet - Paytm',
+    'Digital Wallet - GPay'
+  ],
+  investments: [
+    'Stocks',
+    'Mutual Fund - Equity',
+    'Mutual Fund - Debt',
+    'Mutual Fund - Hybrid',
+    'Bonds / Debentures',
+    'ETF',
+    'PPF',
+    'NSC',
+    'SSY'
+  ],
+  'personal-assets': [
+    'Physical Gold / Jewelry',
+    'Digital Gold',
+    'Sovereign Gold Bonds'
+  ],
+  'real-estate': [
+    'Residential Property',
+    'Commercial Property',
+    'Land / Plot'
+  ],
+  vehicles: [
+    'Car',
+    'Two-Wheeler',
+    'Boat / Caravan / Other'
+  ],
+  'retirement-funds': [
+    'EPF',
+    'VPF',
+    'NPS',
+    'Pension Account'
+  ],
+  // Optional buckets
+  'business-assets': [
+    'Business Ownership / Equity'
+  ],
+};
+
 export default function AssetForm({ isOpen, onClose, onSave, editingAsset, presetCategoryId }: AssetFormProps) {
   // Only keep fields we actually need now
   const [formData, setFormData] = useState<Partial<Asset>>({
@@ -225,8 +273,14 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Chase Checking Account"
+                list="asset-name-suggestions"
                 required
               />
+              <datalist id="asset-name-suggestions">
+                {(assetNameSuggestions[formData.category || ''] || []).map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Value ($)</label>
