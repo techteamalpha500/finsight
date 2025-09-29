@@ -648,65 +648,43 @@ export default function NetWorthPage() {
                 </div>
               </div>
               
-              {/* Assets Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {/* Assets Compact List */}
+              <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
                 {categoryAssets.map(asset => (
-                  <Card key={asset.id} className="p-4 hover:shadow-lg transition-all duration-200 border-0 bg-card/50 backdrop-blur-sm">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20 flex-shrink-0">
-                          {getTypeIcon(asset.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate text-foreground">{asset.name}</h4>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {asset.type.replace('-', ' ')}
-                          </p>
-                        </div>
+                  <div key={asset.id} className="flex items-center gap-3 px-3 py-2">
+                    <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/20">
+                      {getTypeIcon(asset.type)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{asset.name}</p>
+                        <p className="text-sm font-semibold text-green-600 dark:text-green-400 shrink-0">{formatCurrency(asset.value)}</p>
                       </div>
-                      <div className="flex gap-1 ml-2">
-                        <button
-                          onClick={() => handleEditAsset(asset)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          title="Edit asset"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAsset(asset.id)}
-                          className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                          title="Delete asset"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="capitalize truncate">{asset.type.replace('-', ' ')}</span>
+                        {asset.monthlyIncome ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 shrink-0">+{formatCurrency(asset.monthlyIncome)}/mo</span>
+                        ) : null}
+                        {asset.interestRate ? (
+                          <span className="shrink-0">{asset.interestRate}% p.a.</span>
+                        ) : null}
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Value</span>
-                        <span className="font-bold text-green-600 dark:text-green-400">
-                          {formatCurrency(asset.value)}
-                        </span>
-                      </div>
-                      {asset.monthlyIncome && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Monthly Income</span>
-                          <span className="text-sm text-green-600 dark:text-green-400">
-                            +{formatCurrency(asset.monthlyIncome)}
-                          </span>
-                        </div>
-                      )}
-                      {asset.interestRate && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Interest Rate</span>
-                          <span className="text-sm text-muted-foreground">
-                            {asset.interestRate}% p.a.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
+                    <button
+                      onClick={() => handleEditAsset(asset)}
+                      className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAsset(asset.id)}
+                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -793,81 +771,44 @@ export default function NetWorthPage() {
                 </div>
               </div>
               
-              {/* Liabilities Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {/* Liabilities Compact List */}
+              <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
                 {categoryLiabilities.map(liability => (
-                  <Card key={liability.id} className="p-4 hover:shadow-lg transition-all duration-200 border-0 bg-card/50 backdrop-blur-sm">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20 flex-shrink-0">
-                          {getTypeIcon(liability.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate text-foreground">{liability.name}</h4>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {liability.type === 'EMI' ? 'EMI Loan' : 'Regular Debt'}
-                          </p>
-                        </div>
+                  <div key={liability.id} className="flex items-center gap-3 px-3 py-2">
+                    <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/20">
+                      {getTypeIcon(liability.type)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{liability.name}</p>
+                        <p className="text-sm font-semibold text-red-600 dark:text-red-400 shrink-0">{formatCurrency(liability.remainingAmount)}</p>
                       </div>
-                      <div className="flex gap-1 ml-2">
-                        <button
-                          onClick={() => handleEditLiability(liability)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          title="Edit liability"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteLiability(liability.id)}
-                          className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                          title="Delete liability"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="capitalize truncate">{liability.type === 'EMI' ? 'EMI loan' : 'Regular debt'}</span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 shrink-0">{formatCurrency(liability.monthlyPayment)}/mo</span>
+                        {liability.interestRate ? (
+                          <span className="shrink-0">{liability.interestRate}% p.a.</span>
+                        ) : null}
+                        {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths ? (
+                          <span className="shrink-0">{liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} • {Math.floor((liability.remainingMonths || 0) / 12)}y {(liability.remainingMonths || 0) % 12}m left</span>
+                        ) : null}
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Outstanding</span>
-                        <span className="font-bold text-red-600 dark:text-red-400">
-                          {formatCurrency(liability.remainingAmount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Monthly Payment</span>
-                        <span className="text-sm text-red-600 dark:text-red-400">
-                          {formatCurrency(liability.monthlyPayment)}
-                        </span>
-                      </div>
-                      {liability.interestRate && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Interest Rate</span>
-                          <span className="text-sm text-muted-foreground">
-                            {liability.interestRate}% p.a.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* EMI Progress Bar */}
-                    {liability.type === 'EMI' && liability.remainingMonths && liability.totalMonths && (
-                      <div className="mt-3 pt-3 border-t border-border/50">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="text-muted-foreground">
-                            {liability.totalMonths - liability.remainingMonths}/{liability.totalMonths} mo • {Math.floor((liability.remainingMonths || 0) / 12)}y {(liability.remainingMonths || 0) % 12}m left
-                          </span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-red-600 dark:bg-red-400 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${((liability.totalMonths - liability.remainingMonths) / liability.totalMonths) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </Card>
+                    <button
+                      onClick={() => handleEditLiability(liability)}
+                      className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteLiability(liability.id)}
+                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
