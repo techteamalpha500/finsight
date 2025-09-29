@@ -201,7 +201,7 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
   const selectedCategoryData = assetCategories.find(cat => cat.id === formData.category);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal open={isOpen} onClose={onClose}>
       <Card className="w-full max-w-2xl">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">

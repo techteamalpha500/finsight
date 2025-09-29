@@ -454,22 +454,6 @@ export default function NetWorthPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Net Worth Tracker</h1>
           <p className="text-sm text-muted-foreground">Track your financial health and optimize your wealth</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="primary"
-            onClick={() => handleAddItem('asset')}
-            leftIcon={<TrendingUp className="w-4 h-4" />}
-          >
-            Add Asset
-          </Button>
-          <Button 
-            variant="primary"
-            onClick={() => handleAddItem('liability')}
-            leftIcon={<TrendingDown className="w-4 h-4" />}
-          >
-            Add Liability
-          </Button>
-        </div>
       </div>
 
       {/* Always Visible KPIs */}
@@ -592,10 +576,7 @@ export default function NetWorthPage() {
       {/* Assets Tab - Flat List */}
       {activeTab === 'assets' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">Your Assets</h3>
-            <Button variant="primary" onClick={() => handleAddItem('asset')} leftIcon={<TrendingUp className="w-4 h-4" />}>Add Asset</Button>
-          </div>
+          <h3 className="text-sm font-medium text-muted-foreground">Your Assets</h3>
           {assets.length > 0 ? (
             <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
               {assets.map(asset => (
@@ -639,10 +620,7 @@ export default function NetWorthPage() {
       {/* Liabilities Tab - Flat List */}
       {activeTab === 'liabilities' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">Your Liabilities</h3>
-            <Button variant="primary" onClick={() => handleAddItem('liability')} leftIcon={<TrendingDown className="w-4 h-4" />}>Add Liability</Button>
-          </div>
+          <h3 className="text-sm font-medium text-muted-foreground">Your Liabilities</h3>
           {liabilities.length > 0 ? (
             <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
               {liabilities.map(liability => (
