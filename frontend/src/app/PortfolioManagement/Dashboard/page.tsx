@@ -7,14 +7,18 @@ import { Doughnut, Bar } from "react-chartjs-2";
 import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
 import { formatCurrency, formatNumber } from "../../utils/format";
 import { computeRebalance } from "../domain/rebalance";
-import { ArrowUpRight, ArrowDownRight, PlusCircle, Target, PieChart, LineChart } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, PlusCircle, Target, PieChart, LineChart, TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw } from "lucide-react";
 import RiskProfile from "../components/RiskProfile";
+import { calculateFinancialOverview, type FinancialOverview } from "../../../lib/financialOverview";
 
 Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 export default function DashboardPage() {
 	const { holdings, plan, driftTolerancePct, profile } = useApp();
 	const currency = profile.currency || "INR";
+	const [financialOverview, setFinancialOverview] = useState<FinancialOverview | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
 
 	const { totalInvested, totalCurrent, pnl, pnlPct } = useMemo(() => {
 		const invested = holdings.reduce((sum, h) => sum + (h.investedAmount || (h.units && h.price ? h.units * h.price : 0)), 0);
@@ -67,23 +71,132 @@ export default function DashboardPage() {
 
 	const rebalance = useMemo(() => plan ? computeRebalance(holdings, plan, driftTolerancePct) : { items: [], totalCurrentValue: 0 }, [holdings, plan, driftTolerancePct]);
 
+	// Load financial overview
+	useEffect(() => {
+		loadFinancialOverview();
+	}, []);
+
+	const loadFinancialOverview = async () => {
+		try {
+			setLoading(true);
+			const overview = await calculateFinancialOverview();
+			setFinancialOverview(overview);
+		} catch (error) {
+			console.error('Error loading financial overview:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleRefresh = async () => {
+		setRefreshing(true);
+		await loadFinancialOverview();
+		setRefreshing(false);
+	};
+
+	if (loading) {
+		return (
+			<div className="max-w-full space-y-4 pl-2">
+				<div className="flex items-center justify-center h-64">
+					<div className="text-center">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+						<div className="text-muted-foreground">Loading dashboard...</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="max-w-full space-y-4 pl-2">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					<div className="text-sm text-muted-foreground">Dashboard</div>
+					{refreshing && (
+						<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+					)}
 				</div>
+				<Button 
+					onClick={handleRefresh}
+					variant="outline" 
+					size="sm"
+					disabled={refreshing}
+					leftIcon={refreshing ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div> : <RefreshCw size={16} />}
+				>
+					{refreshing ? 'Refreshing...' : 'Refresh'}
+				</Button>
 			</div>
 			
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 				<KPI title="Current Value" value={formatCurrency(totalCurrent, currency)} icon={<PieChart className="h-5 w-5 text-indigo-600" />} />
 				<KPI title="Invested" value={formatCurrency(totalInvested, currency)} icon={<Target className="h-5 w-5 text-emerald-600" />} />
 				<KPI title="P/L" value={`${formatCurrency(pnl, currency)} (${formatNumber(pnlPct, 2)}%)`} icon={pnl >= 0 ? <ArrowUpRight className="h-5 w-5 text-emerald-600" /> : <ArrowDownRight className="h-5 w-5 text-rose-600" />} valueClassName={pnl >= 0 ? "text-emerald-700" : "text-rose-700"} />
-				<div className="flex gap-2">
-					<Button variant="outline" size="sm" className="w-full" leftIcon={<PlusCircle className="h-4 w-4" />} onClick={() => window.location.assign("/PortfolioManagement/AddHolding")}>Add Holding</Button>
-				</div>
+				{financialOverview && (
+					<KPI 
+						title="Net Worth" 
+						value={formatCurrency(financialOverview.netWorth, currency)} 
+						icon={<DollarSign className="h-5 w-5 text-purple-600" />} 
+						valueClassName={financialOverview.netWorth >= 0 ? "text-purple-700" : "text-red-700"}
+					/>
+				)}
 			</div>
+
+			{/* Financial Health Overview */}
+			{financialOverview && (
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<Card className="bg-emerald-900/40 border border-emerald-800">
+						<CardContent className="p-4">
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-xs text-muted-foreground">Financial Health</p>
+									<p className="text-lg font-bold text-emerald-400">
+										{financialOverview.financialHealth.healthStatus}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										Score: {financialOverview.financialHealth.healthScore.toFixed(0)}/100
+									</p>
+								</div>
+								<BarChart3 className="w-5 h-5 text-emerald-400" />
+							</div>
+						</CardContent>
+					</Card>
+
+					<Card className="bg-blue-900/40 border border-blue-800">
+						<CardContent className="p-4">
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-xs text-muted-foreground">Monthly Cash Flow</p>
+									<p className={`text-lg font-bold ${financialOverview.insights.monthlyCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+										{formatCurrency(financialOverview.insights.monthlyCashFlow, currency)}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										Emergency Fund: {financialOverview.insights.emergencyFundMonths.toFixed(1)} months
+									</p>
+								</div>
+								<TrendingUp className="w-5 h-5 text-blue-400" />
+							</div>
+						</CardContent>
+					</Card>
+
+					<Card className="bg-red-900/40 border border-red-800">
+						<CardContent className="p-4">
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-xs text-muted-foreground">Total Debt</p>
+									<p className="text-lg font-bold text-red-400">
+										{formatCurrency(financialOverview.repayments.totalOutstanding, currency)}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										Monthly EMI: {formatCurrency(financialOverview.repayments.totalMonthlyEMI, currency)}
+									</p>
+								</div>
+								<TrendingDown className="w-5 h-5 text-red-400" />
+							</div>
+						</CardContent>
+					</Card>
+				</div>
+			)}
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				<Card>
@@ -150,6 +263,65 @@ export default function DashboardPage() {
 					) : (
 						<div className="text-slate-500">{holdings.length === 0 ? "Add holdings to see suggestions." : "All good! No rebalancing needed."}</div>
 					)}
+				</CardContent>
+			</Card>
+
+			{/* Quick Actions */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Quick Actions</CardTitle>
+					<CardDescription>Manage your financial portfolio</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+						<Button 
+							variant="outline" 
+							className="h-auto p-4 flex flex-col items-center gap-2"
+							onClick={() => window.location.href = '/PortfolioManagement/FinancialOverview'}
+						>
+							<BarChart3 className="w-6 h-6 text-purple-600" />
+							<div className="text-center">
+								<div className="font-medium">Financial Overview</div>
+								<div className="text-xs text-muted-foreground">Complete financial picture</div>
+							</div>
+						</Button>
+
+						<Button 
+							variant="outline" 
+							className="h-auto p-4 flex flex-col items-center gap-2"
+							onClick={() => window.location.href = '/PortfolioManagement/Portfolio/Holdings'}
+						>
+							<TrendingUp className="w-6 h-6 text-green-600" />
+							<div className="text-center">
+								<div className="font-medium">Manage Holdings</div>
+								<div className="text-xs text-muted-foreground">Add or update investments</div>
+							</div>
+						</Button>
+
+						<Button 
+							variant="outline" 
+							className="h-auto p-4 flex flex-col items-center gap-2"
+							onClick={() => window.location.href = '/PortfolioManagement/Portfolio/NetWorth'}
+						>
+							<PieChart className="w-6 h-6 text-blue-600" />
+							<div className="text-center">
+								<div className="font-medium">Track Net Worth</div>
+								<div className="text-xs text-muted-foreground">Assets & liabilities</div>
+							</div>
+						</Button>
+
+						<Button 
+							variant="outline" 
+							className="h-auto p-4 flex flex-col items-center gap-2"
+							onClick={() => window.location.href = '/PortfolioManagement/Portfolio/Repayments'}
+						>
+							<CreditCard className="w-6 h-6 text-red-600" />
+							<div className="text-center">
+								<div className="font-medium">Optimize Repayments</div>
+								<div className="text-xs text-muted-foreground">Smart debt management</div>
+							</div>
+						</Button>
+					</div>
 				</CardContent>
 			</Card>
 		</div>

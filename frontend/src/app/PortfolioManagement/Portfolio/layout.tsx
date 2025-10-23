@@ -10,6 +10,7 @@ export default function PortfolioModuleLayout({ children }: { children: React.Re
 	const pathname = usePathname();
 	const router = useRouter();
 	const tabs = [
+		{ name: "Overview", href: "/PortfolioManagement/FinancialOverview" },
 		{ name: "Net Worth", href: "/PortfolioManagement/Portfolio/NetWorth" },
 		{ name: "Holdings", href: "/PortfolioManagement/Portfolio/Holdings" },
 		{ name: "Repayments", href: "/PortfolioManagement/Portfolio/Repayments" },
@@ -18,7 +19,7 @@ export default function PortfolioModuleLayout({ children }: { children: React.Re
 
 	useEffect(() => {
 		if (pathname === "/PortfolioManagement/Portfolio" || pathname === "/PortfolioManagement/Portfolio/") {
-			router.replace("/PortfolioManagement/Portfolio/NetWorth");
+			router.replace("/PortfolioManagement/FinancialOverview");
 		}
 	}, [pathname, router]);
 

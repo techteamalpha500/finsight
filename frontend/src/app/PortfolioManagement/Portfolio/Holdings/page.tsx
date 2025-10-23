@@ -262,6 +262,7 @@ export default function HoldingsPage() {
 	// Load holdings from DynamoDB
 	async function loadHoldingsData() {
 		try {
+			setIsRefreshing(true);
 			// For now, using a mock user ID. In production, this should come from user authentication
 			const mockUserId = 'user-123';
 			const dbHoldings = await fetchUserHoldings(mockUserId);
@@ -293,8 +294,12 @@ export default function HoldingsPage() {
 			
 			setHoldings(sortedHoldings);
 		} catch (error) {
+			console.error('Error loading holdings:', error);
 			// Silent fail - set empty array
 			setHoldings([]);
+		} finally {
+			setIsRefreshing(false);
+			setIsInitialLoading(false);
 		}
 	}
 
@@ -1041,14 +1046,39 @@ export default function HoldingsPage() {
 		}
 	}
 
+	if (isInitialLoading) {
+		return (
+			<div className="max-w-full space-y-4 pl-2">
+				<div className="flex items-center justify-center h-64">
+					<div className="text-center">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+						<div className="text-muted-foreground">Loading holdings...</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="max-w-full space-y-4 pl-2">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					<div className="text-sm text-muted-foreground">Holdings</div>
+					{isRefreshing && (
+						<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
+					<Button 
+						onClick={loadHoldingsData}
+						variant="outline" 
+						size="sm"
+						disabled={isRefreshing}
+						leftIcon={isRefreshing ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div> : <TrendingUp size={16} />}
+					>
+						{isRefreshing ? 'Refreshing...' : 'Refresh'}
+					</Button>
 					<Button 
 						onClick={() => setIsModalOpen(true)} 
 						variant="outline" 

@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import time
 from datetime import datetime
 
 import boto3
@@ -36,7 +37,12 @@ def _cors_headers():
 
 
 def _response(status, body):
-    return {"statusCode": status, "headers": _cors_headers(), "body": json.dumps(body, default=_to_json)}
+    return {
+        "statusCode": status, 
+        "headers": _cors_headers(), 
+        "body": json.dumps(body, default=_to_json),
+        "isBase64Encoded": False
+    }
 
 
 def _to_json(o):
@@ -285,7 +291,11 @@ def _user_from_jwt(evt):
 
 
 def handler(event, context):
+    start_time = time.time()
     try:
+        # Add request logging for debugging
+        print(f"Processing request: {event.get('httpMethod', 'UNKNOWN')} {event.get('path', 'UNKNOWN')}")
+        
         method = (event.get("requestContext", {}).get("http", {}) or {}).get("method") or event.get("httpMethod")
         path = event.get("rawPath") or event.get("resource") or ""
         route_key = event.get("requestContext", {}).get("routeKey") or f"{method} {path}"
@@ -297,7 +307,11 @@ def handler(event, context):
         if event.get("body"):
             try:
                 body = json.loads(event["body"]) or {}
-            except Exception:
+            except json.JSONDecodeError as e:
+                print(f"Invalid JSON in request body: {str(e)}")
+                return _response(400, {"error": "Invalid JSON in request body"})
+            except Exception as e:
+                print(f"Error parsing request body: {str(e)}")
                 body = {}
         qs = event.get("queryStringParameters") or {}
         path_params = event.get("pathParameters") or {}
@@ -921,22 +935,30 @@ def handler(event, context):
             try:
                 user_id = "user-123"  # TODO: Get from auth context
                 
-                # Get assets and liabilities from separate tables
-                assets_response = dynamodb.Table("Assets").scan(
-                    FilterExpression='user_id = :user_id',
-                    ExpressionAttributeValues={':user_id': user_id}
-                )
-                liabilities_response = dynamodb.Table("Liabilities").scan(
-                    FilterExpression='user_id = :user_id',
-                    ExpressionAttributeValues={':user_id': user_id}
-                )
+                # Get assets and liabilities from separate tables with error handling
+                try:
+                    assets_response = dynamodb.Table("Assets").scan(
+                        FilterExpression='user_id = :user_id',
+                        ExpressionAttributeValues={':user_id': user_id}
+                    )
+                    assets = assets_response.get('Items', [])
+                except Exception as e:
+                    print(f"Error fetching assets: {str(e)}")
+                    assets = []
                 
-                assets = assets_response.get('Items', [])
-                liabilities = liabilities_response.get('Items', [])
+                try:
+                    liabilities_response = dynamodb.Table("Liabilities").scan(
+                        FilterExpression='user_id = :user_id',
+                        ExpressionAttributeValues={':user_id': user_id}
+                    )
+                    liabilities = liabilities_response.get('Items', [])
+                except Exception as e:
+                    print(f"Error fetching liabilities: {str(e)}")
+                    liabilities = []
                 
-                # Calculate totals
-                total_assets = sum(float(asset.get('value', 0)) for asset in assets)
-                total_liabilities = sum(float(liability.get('remaining_amount', 0)) for liability in liabilities)
+                # Calculate totals with safe conversion
+                total_assets = sum(float(asset.get('value', 0)) for asset in assets if asset.get('value'))
+                total_liabilities = sum(float(liability.get('remaining_amount', 0)) for liability in liabilities if liability.get('remaining_amount'))
                 net_worth = total_assets - total_liabilities
                 
                 return _response(200, {
@@ -947,7 +969,11 @@ def handler(event, context):
                     'liabilities': liabilities
                 })
             except Exception as e:
-                return _response(500, {"error": f"Failed to fetch net worth data: {str(e)}"})
+                print(f"Error in net worth calculation: {str(e)}")
+                return _response(500, {
+                    "error": "Failed to fetch net worth data", 
+                    "message": "Unable to retrieve financial data. Please try again later."
+                })
 
         # Create asset (POST /networth/assets)
         if route_key == "POST /networth/assets":
@@ -1290,5 +1316,14 @@ def handler(event, context):
 
         return _response(404, {"error": "Not found", "routeKey": route_key})
     except Exception as e:
-        print("handler error", e)
-        return _response(500, {"error": "Internal error"})
+        execution_time = time.time() - start_time
+        print(f"Handler error after {execution_time:.2f}s: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return _response(500, {
+            "error": "Internal server error", 
+            "message": "An unexpected error occurred. Please try again later.",
+            "requestId": context.aws_request_id if context else "unknown",
+            "executionTime": f"{execution_time:.2f}s"
+        })
