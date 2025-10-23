@@ -915,6 +915,199 @@ def handler(event, context):
             except Exception as e:
                 return _response(500, {"error": f"Failed to fetch repayment history: {str(e)}"})
 
+        # Net Worth endpoints
+        # Get net worth data (GET /networth)
+        if route_key == "GET /networth":
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                
+                # Get assets and liabilities from separate tables
+                assets_response = dynamodb.Table("Assets").scan(
+                    FilterExpression='user_id = :user_id',
+                    ExpressionAttributeValues={':user_id': user_id}
+                )
+                liabilities_response = dynamodb.Table("Liabilities").scan(
+                    FilterExpression='user_id = :user_id',
+                    ExpressionAttributeValues={':user_id': user_id}
+                )
+                
+                assets = assets_response.get('Items', [])
+                liabilities = liabilities_response.get('Items', [])
+                
+                # Calculate totals
+                total_assets = sum(float(asset.get('value', 0)) for asset in assets)
+                total_liabilities = sum(float(liability.get('remaining_amount', 0)) for liability in liabilities)
+                net_worth = total_assets - total_liabilities
+                
+                return _response(200, {
+                    'net_worth': net_worth,
+                    'total_assets': total_assets,
+                    'total_liabilities': total_liabilities,
+                    'assets': assets,
+                    'liabilities': liabilities
+                })
+            except Exception as e:
+                return _response(500, {"error": f"Failed to fetch net worth data: {str(e)}"})
+
+        # Create asset (POST /networth/assets)
+        if route_key == "POST /networth/assets":
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                asset_id = str(uuid.uuid4())
+                
+                asset = {
+                    'user_id': user_id,
+                    'asset_id': asset_id,
+                    'name': body.get('name', ''),
+                    'category': body.get('category', ''),
+                    'type': body.get('type', ''),
+                    'value': Decimal(str(body.get('value', 0))),
+                    'monthly_income': Decimal(str(body.get('monthly_income', 0))) if body.get('monthly_income') else None,
+                    'interest_rate': Decimal(str(body.get('interest_rate', 0))) if body.get('interest_rate') else None,
+                    'purchase_date': body.get('purchase_date', ''),
+                    'maturity_date': body.get('maturity_date', ''),
+                    'description': body.get('description', ''),
+                    'created_at': datetime.utcnow().isoformat(),
+                    'updated_at': datetime.utcnow().isoformat()
+                }
+                
+                dynamodb.Table("Assets").put_item(Item=asset)
+                
+                return _response(201, {'asset_id': asset_id, 'message': 'Asset created successfully'})
+            except Exception as e:
+                return _response(500, {"error": f"Failed to create asset: {str(e)}"})
+
+        # Create liability (POST /networth/liabilities)
+        if route_key == "POST /networth/liabilities":
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                liability_id = str(uuid.uuid4())
+                
+                liability = {
+                    'user_id': user_id,
+                    'liability_id': liability_id,
+                    'name': body.get('name', ''),
+                    'category': body.get('category', ''),
+                    'type': body.get('type', 'EMI'),
+                    'principal_amount': Decimal(str(body.get('principal_amount', 0))),
+                    'remaining_amount': Decimal(str(body.get('remaining_amount', 0))),
+                    'monthly_payment': Decimal(str(body.get('monthly_payment', 0))),
+                    'interest_rate': Decimal(str(body.get('interest_rate', 0))),
+                    'start_date': body.get('start_date', ''),
+                    'end_date': body.get('end_date', ''),
+                    'remaining_months': body.get('remaining_months', 0),
+                    'total_months': body.get('total_months', 0),
+                    'description': body.get('description', ''),
+                    'created_at': datetime.utcnow().isoformat(),
+                    'updated_at': datetime.utcnow().isoformat()
+                }
+                
+                dynamodb.Table("Liabilities").put_item(Item=liability)
+                
+                return _response(201, {'liability_id': liability_id, 'message': 'Liability created successfully'})
+            except Exception as e:
+                return _response(500, {"error": f"Failed to create liability: {str(e)}"})
+
+        # Update asset (PUT /networth/assets/{id})
+        if route_key.startswith("PUT /networth/assets/"):
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                asset_id = path.split('/')[-1]
+                
+                # Get existing asset
+                response = dynamodb.Table("Assets").get_item(
+                    Key={'user_id': user_id, 'asset_id': asset_id}
+                )
+                
+                if 'Item' not in response:
+                    return _response(404, {'error': 'Asset not found'})
+                
+                # Update fields
+                update_expression = "SET updated_at = :updated_at"
+                expression_values = {':updated_at': datetime.utcnow().isoformat()}
+                
+                for field in ['name', 'category', 'type', 'value', 'monthly_income', 'interest_rate', 'purchase_date', 'maturity_date', 'description']:
+                    if field in body:
+                        if field in ['value', 'monthly_income', 'interest_rate']:
+                            expression_values[f':{field}'] = Decimal(str(body[field]))
+                        else:
+                            expression_values[f':{field}'] = body[field]
+                        update_expression += f", {field} = :{field}"
+                
+                dynamodb.Table("Assets").update_item(
+                    Key={'user_id': user_id, 'asset_id': asset_id},
+                    UpdateExpression=update_expression,
+                    ExpressionAttributeValues=expression_values
+                )
+                
+                return _response(200, {'message': 'Asset updated successfully'})
+            except Exception as e:
+                return _response(500, {"error": f"Failed to update asset: {str(e)}"})
+
+        # Update liability (PUT /networth/liabilities/{id})
+        if route_key.startswith("PUT /networth/liabilities/"):
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                liability_id = path.split('/')[-1]
+                
+                # Get existing liability
+                response = dynamodb.Table("Liabilities").get_item(
+                    Key={'user_id': user_id, 'liability_id': liability_id}
+                )
+                
+                if 'Item' not in response:
+                    return _response(404, {'error': 'Liability not found'})
+                
+                # Update fields
+                update_expression = "SET updated_at = :updated_at"
+                expression_values = {':updated_at': datetime.utcnow().isoformat()}
+                
+                for field in ['name', 'category', 'type', 'principal_amount', 'remaining_amount', 'monthly_payment', 'interest_rate', 'start_date', 'end_date', 'remaining_months', 'total_months', 'description']:
+                    if field in body:
+                        if field in ['principal_amount', 'remaining_amount', 'monthly_payment', 'interest_rate']:
+                            expression_values[f':{field}'] = Decimal(str(body[field]))
+                        else:
+                            expression_values[f':{field}'] = body[field]
+                        update_expression += f", {field} = :{field}"
+                
+                dynamodb.Table("Liabilities").update_item(
+                    Key={'user_id': user_id, 'liability_id': liability_id},
+                    UpdateExpression=update_expression,
+                    ExpressionAttributeValues=expression_values
+                )
+                
+                return _response(200, {'message': 'Liability updated successfully'})
+            except Exception as e:
+                return _response(500, {"error": f"Failed to update liability: {str(e)}"})
+
+        # Delete asset (DELETE /networth/assets/{id})
+        if route_key.startswith("DELETE /networth/assets/"):
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                asset_id = path.split('/')[-1]
+                
+                dynamodb.Table("Assets").delete_item(
+                    Key={'user_id': user_id, 'asset_id': asset_id}
+                )
+                
+                return _response(200, {'message': 'Asset deleted successfully'})
+            except Exception as e:
+                return _response(500, {"error": f"Failed to delete asset: {str(e)}"})
+
+        # Delete liability (DELETE /networth/liabilities/{id})
+        if route_key.startswith("DELETE /networth/liabilities/"):
+            try:
+                user_id = "user-123"  # TODO: Get from auth context
+                liability_id = path.split('/')[-1]
+                
+                dynamodb.Table("Liabilities").delete_item(
+                    Key={'user_id': user_id, 'liability_id': liability_id}
+                )
+                
+                return _response(200, {'message': 'Liability deleted successfully'})
+            except Exception as e:
+                return _response(500, {"error": f"Failed to delete liability: {str(e)}"})
+
         # CAS Import endpoint (POST /holdings/import)
         if route_key == "POST /holdings/import":
             try:

@@ -35,196 +35,23 @@ import {
   Edit,
   Trash2
 } from "lucide-react";
+import { 
+  fetchNetWorthData, 
+  createAsset, 
+  createLiability, 
+  updateAsset, 
+  updateLiability, 
+  deleteAsset, 
+  deleteLiability,
+  calculateFinancialHealth,
+  type Asset,
+  type Liability,
+  type NetWorthData
+} from "../../../../lib/networth";
 
-// Types
-interface Asset {
-  id: string;
-  name: string;
-  category: string;
-  type: string;
-  value: number;
-  monthlyIncome?: number;
-  interestRate?: number;
-  purchaseDate?: string;
-  maturityDate?: string;
-  description?: string;
-}
+// Types are now imported from networth.ts
 
-interface Liability {
-  id: string;
-  name: string;
-  category: string;
-  type: 'EMI' | 'Regular';
-  principalAmount: number;
-  remainingAmount: number;
-  monthlyPayment: number;
-  interestRate: number;
-  startDate: string;
-  endDate?: string;
-  remainingMonths?: number;
-  totalMonths?: number;
-  description?: string;
-}
-
-interface FinancialHealth {
-  netWorth: number;
-  totalAssets: number;
-  totalLiabilities: number;
-  debtToAssetRatio: number;
-  liquidityRatio: number;
-  monthlyCashFlow: number;
-  healthScore: number;
-  healthStatus: 'Excellent' | 'Good' | 'Fair' | 'Poor';
-}
-
-// Sample Data
-const sampleAssets: Asset[] = [
-  {
-    id: '1',
-    name: 'Primary Residence',
-    category: 'real-estate',
-    type: 'primary-residence',
-    value: 2500000,
-    purchaseDate: '2020-01-15',
-    description: '3BHK apartment in downtown'
-  },
-  {
-    id: '2',
-    name: 'Savings Account',
-    category: 'cash-savings',
-    type: 'savings-account',
-    value: 150000,
-    interestRate: 3.5,
-    description: 'HDFC Savings Account'
-  },
-  {
-    id: '3',
-    name: 'Certificate of Deposit',
-    category: 'cash-savings',
-    type: 'certificate-deposit',
-    value: 500000,
-    interestRate: 6.8,
-    maturityDate: '2025-12-31',
-    description: 'SBI CD for 3 years'
-  },
-  {
-    id: '4',
-    name: 'Mutual Fund Portfolio',
-    category: 'investments',
-    type: 'mutual-funds',
-    value: 750000,
-    monthlyIncome: 2500,
-    description: 'Diversified equity and debt funds'
-  },
-  {
-    id: '5',
-    name: 'Stocks Portfolio',
-    category: 'investments',
-    type: 'stocks',
-    value: 300000,
-    description: 'Blue chip stocks'
-  },
-  {
-    id: '6',
-    name: 'Car',
-    category: 'vehicles',
-    type: 'car',
-    value: 800000,
-    purchaseDate: '2022-06-01',
-    description: 'Honda City VX'
-  },
-  {
-    id: '7',
-    name: 'Gold Jewelry',
-    category: 'personal-assets',
-    type: 'jewelry',
-    value: 200000,
-    description: 'Family gold collection'
-  },
-  {
-    id: '8',
-    name: '401(k) Account',
-    category: 'retirement-funds',
-    type: '401k',
-    value: 1200000,
-    description: 'Company 401(k) with employer match'
-  }
-];
-
-const sampleLiabilities: Liability[] = [
-  {
-    id: '1',
-    name: 'Home Mortgage',
-    category: 'mortgage',
-    type: 'EMI',
-    principalAmount: 2000000,
-    remainingAmount: 1200000,
-    monthlyPayment: 25000,
-    interestRate: 8.5,
-    startDate: '2020-01-15',
-    endDate: '2030-01-15',
-    remainingMonths: 60,
-    totalMonths: 120,
-    description: 'SBI Home Mortgage'
-  },
-  {
-    id: '2',
-    name: 'Car Loan',
-    category: 'auto-loans',
-    type: 'EMI',
-    principalAmount: 600000,
-    remainingAmount: 200000,
-    monthlyPayment: 15000,
-    interestRate: 9.2,
-    startDate: '2022-06-01',
-    endDate: '2027-06-01',
-    remainingMonths: 20,
-    totalMonths: 60,
-    description: 'HDFC Car Loan'
-  },
-  {
-    id: '3',
-    name: 'Credit Card Debt',
-    category: 'credit-cards',
-    type: 'Regular',
-    principalAmount: 50000,
-    remainingAmount: 50000,
-    monthlyPayment: 5000,
-    interestRate: 18.5,
-    startDate: '2024-01-01',
-    description: 'HDFC Credit Card'
-  },
-  {
-    id: '4',
-    name: 'Personal Loan',
-    category: 'personal-loans',
-    type: 'EMI',
-    principalAmount: 200000,
-    remainingAmount: 80000,
-    monthlyPayment: 8000,
-    interestRate: 12.0,
-    startDate: '2023-03-01',
-    endDate: '2025-03-01',
-    remainingMonths: 8,
-    totalMonths: 24,
-    description: 'ICICI Personal Loan'
-  },
-  {
-    id: '5',
-    name: 'Student Loan',
-    category: 'student-loans',
-    type: 'EMI',
-    principalAmount: 300000,
-    remainingAmount: 150000,
-    monthlyPayment: 3000,
-    interestRate: 6.8,
-    startDate: '2018-09-01',
-    endDate: '2028-09-01',
-    remainingMonths: 48,
-    totalMonths: 120,
-    description: 'Federal Student Loan'
-  }
-];
+// Sample data removed - now using real data from API
 
 export default function NetWorthPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'assets' | 'liabilities'>('overview');
@@ -234,50 +61,31 @@ export default function NetWorthPage() {
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showLiabilityForm, setShowLiabilityForm] = useState(false);
   const [editingItem, setEditingItem] = useState<Asset | Liability | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Calculate financial health
-  const calculateFinancialHealth = (): FinancialHealth => {
-    const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
-    const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.remainingAmount, 0);
-    const netWorth = totalAssets - totalLiabilities;
-    const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
-    
-    // Calculate monthly cash flow
-    const monthlyIncome = assets.reduce((sum, asset) => sum + (asset.monthlyIncome || 0), 0);
-    const monthlyPayments = liabilities.reduce((sum, liability) => sum + liability.monthlyPayment, 0);
-    const monthlyCashFlow = monthlyIncome - monthlyPayments;
-    
-    // Calculate liquidity ratio (cash & equivalents / monthly expenses)
-    // Liquidity: consider cash & savings bucket only
-    const cashAssets = assets
-      .filter(asset => asset.category === 'cash-savings')
-      .reduce((sum, asset) => sum + asset.value, 0);
-    const liquidityRatio = monthlyPayments > 0 ? cashAssets / monthlyPayments : 0;
-    
-    // Calculate health score (0-100)
-    let healthScore = 100;
-    healthScore -= Math.min(debtToAssetRatio * 2, 50); // Debt ratio penalty
-    healthScore -= Math.max(0, (6 - liquidityRatio) * 10); // Liquidity penalty
-    if (monthlyCashFlow < 0) healthScore -= 20; // Negative cash flow penalty
-    
-    let healthStatus: 'Excellent' | 'Good' | 'Fair' | 'Poor' = 'Excellent';
-    if (healthScore < 60) healthStatus = 'Poor';
-    else if (healthScore < 75) healthStatus = 'Fair';
-    else if (healthScore < 90) healthStatus = 'Good';
-    
-    return {
-      netWorth,
-      totalAssets,
-      totalLiabilities,
-      debtToAssetRatio,
-      liquidityRatio,
-      monthlyCashFlow,
-      healthScore: Math.max(0, Math.min(100, healthScore)),
-      healthStatus
-    };
+  // Load data on component mount
+  useEffect(() => {
+    loadNetWorthData();
+  }, []);
+
+  const loadNetWorthData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchNetWorthData();
+      setAssets(data.assets);
+      setLiabilities(data.liabilities);
+    } catch (err) {
+      console.error('Error loading net worth data:', err);
+      setError('Failed to load net worth data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const financialHealth = calculateFinancialHealth();
+  // Calculate financial health using the imported function
+  const financialHealth = calculateFinancialHealth(assets, liabilities);
 
   // UI: color coding for Debt-to-Asset KPI
   const debtRatioColor =
@@ -416,25 +224,45 @@ export default function NetWorthPage() {
     return iconMap[type] || <DollarSign className="w-4 h-4" />;
   };
 
-  // Form handlers
-  const handleAddAsset = (asset: Asset) => {
-    if (editingItem && 'value' in editingItem) {
-      setAssets(prev => prev.map(a => a.id === asset.id ? asset : a));
-    } else {
-      setAssets(prev => [...prev, asset]);
+  // Form handlers with API integration
+  const handleAddAsset = async (asset: Omit<Asset, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      if (editingItem && 'value' in editingItem) {
+        // Update existing asset
+        await updateAsset(editingItem.id, asset);
+        setAssets(prev => prev.map(a => a.id === editingItem.id ? { ...a, ...asset } : a));
+      } else {
+        // Create new asset
+        const result = await createAsset(asset);
+        const newAsset = { ...asset, id: result.asset_id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setAssets(prev => [...prev, newAsset]);
+      }
+      setShowAssetForm(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error saving asset:', error);
+      alert('Failed to save asset. Please try again.');
     }
-    setShowAssetForm(false);
-    setEditingItem(null);
   };
 
-  const handleAddLiability = (liability: Liability) => {
-    if (editingItem && 'remainingAmount' in editingItem) {
-      setLiabilities(prev => prev.map(l => l.id === liability.id ? liability : l));
-    } else {
-      setLiabilities(prev => [...prev, liability]);
+  const handleAddLiability = async (liability: Omit<Liability, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      if (editingItem && 'remainingAmount' in editingItem) {
+        // Update existing liability
+        await updateLiability(editingItem.id, liability);
+        setLiabilities(prev => prev.map(l => l.id === editingItem.id ? { ...l, ...liability } : l));
+      } else {
+        // Create new liability
+        const result = await createLiability(liability);
+        const newLiability = { ...liability, id: result.liability_id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setLiabilities(prev => [...prev, newLiability]);
+      }
+      setShowLiabilityForm(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error saving liability:', error);
+      alert('Failed to save liability. Please try again.');
     }
-    setShowLiabilityForm(false);
-    setEditingItem(null);
   };
 
   const handleEditAsset = (asset: Asset) => {
@@ -447,12 +275,28 @@ export default function NetWorthPage() {
     setShowLiabilityForm(true);
   };
 
-  const handleDeleteAsset = (assetId: string) => {
-    setAssets(prev => prev.filter(a => a.id !== assetId));
+  const handleDeleteAsset = async (assetId: string) => {
+    if (confirm('Are you sure you want to delete this asset?')) {
+      try {
+        await deleteAsset(assetId);
+        setAssets(prev => prev.filter(a => a.id !== assetId));
+      } catch (error) {
+        console.error('Error deleting asset:', error);
+        alert('Failed to delete asset. Please try again.');
+      }
+    }
   };
 
-  const handleDeleteLiability = (liabilityId: string) => {
-    setLiabilities(prev => prev.filter(l => l.id !== liabilityId));
+  const handleDeleteLiability = async (liabilityId: string) => {
+    if (confirm('Are you sure you want to delete this liability?')) {
+      try {
+        await deleteLiability(liabilityId);
+        setLiabilities(prev => prev.filter(l => l.id !== liabilityId));
+      } catch (error) {
+        console.error('Error deleting liability:', error);
+        alert('Failed to delete liability. Please try again.');
+      }
+    }
   };
 
   const [presetCategory, setPresetCategory] = useState<string | undefined>(undefined);
@@ -466,6 +310,29 @@ export default function NetWorthPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading net worth data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-600 mb-2">{error}</div>
+            <Button onClick={loadNetWorthData}>Retry</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -474,6 +341,13 @@ export default function NetWorthPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Net Worth Tracker</h1>
           <p className="text-sm text-muted-foreground">Track your financial health and optimize your wealth</p>
         </div>
+        <Button 
+          onClick={loadNetWorthData} 
+          variant="outline" 
+          size="sm"
+        >
+          Refresh Data
+        </Button>
       </div>
 
       {/* KPI Tiles */}

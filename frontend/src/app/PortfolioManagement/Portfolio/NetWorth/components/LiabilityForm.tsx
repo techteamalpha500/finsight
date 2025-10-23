@@ -14,27 +14,12 @@ import {
   DollarSign,
   X
 } from "lucide-react";
-
-interface Liability {
-  id: string;
-  name: string;
-  category: string;
-  type: 'EMI' | 'Regular';
-  principalAmount: number;
-  remainingAmount: number;
-  monthlyPayment: number;
-  interestRate: number;
-  startDate: string;
-  endDate?: string;
-  remainingMonths?: number;
-  totalMonths?: number;
-  description?: string;
-}
+import { type Liability } from "../../../../lib/networth";
 
 interface LiabilityFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (liability: Liability) => void;
+  onSave: (liability: Omit<Liability, 'id' | 'created_at' | 'updated_at'>) => void;
   editingLiability?: Liability | null;
   presetCategoryId?: string; // optional quick-add preset
 }
@@ -132,20 +117,19 @@ export default function LiabilityForm({ isOpen, onClose, onSave, editingLiabilit
       return;
     }
 
-    const liability: Liability = {
-      id: editingLiability?.id || Date.now().toString(),
+    const liability: Omit<Liability, 'id' | 'created_at' | 'updated_at'> = {
       name: formData.name,
       category: formData.category,
       type: formData.type as 'EMI' | 'Regular',
-      principalAmount: 0,
+      principalAmount: formData.principalAmount || 0,
       remainingAmount: formData.remainingAmount,
       monthlyPayment: formData.monthlyPayment || 0,
       interestRate: formData.interestRate || 0,
-      startDate: '',
-      endDate: '',
-      remainingMonths: 0,
-      totalMonths: 0,
-      description: ''
+      startDate: formData.startDate || '',
+      endDate: formData.endDate,
+      remainingMonths: formData.remainingMonths,
+      totalMonths: formData.totalMonths,
+      description: formData.description || ''
     };
 
     onSave(liability);

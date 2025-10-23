@@ -22,23 +22,12 @@ import {
   X
 } from "lucide-react";
 
-interface Asset {
-  id: string;
-  name: string;
-  category: string;
-  type: string;
-  value: number;
-  monthlyIncome?: number;
-  interestRate?: number;
-  purchaseDate?: string;
-  maturityDate?: string;
-  description?: string;
-}
+import { type Asset } from "../../../../lib/networth";
 
 interface AssetFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (asset: Asset) => void;
+  onSave: (asset: Omit<Asset, 'id' | 'created_at' | 'updated_at'>) => void;
   editingAsset?: Asset | null;
   presetCategoryId?: string; // optional quick-add preset
 }
@@ -237,12 +226,16 @@ export default function AssetForm({ isOpen, onClose, onSave, editingAsset, prese
       return;
     }
 
-    const asset: Asset = {
-      id: editingAsset?.id || Date.now().toString(),
+    const asset: Omit<Asset, 'id' | 'created_at' | 'updated_at'> = {
       name: formData.name,
       category: formData.category,
-      type: 'item',
-      value: formData.value
+      type: formData.type || 'item',
+      value: formData.value,
+      monthlyIncome: formData.monthlyIncome,
+      interestRate: formData.interestRate,
+      purchaseDate: formData.purchaseDate,
+      maturityDate: formData.maturityDate,
+      description: formData.description
     };
 
     onSave(asset);

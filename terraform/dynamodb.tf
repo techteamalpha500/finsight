@@ -514,3 +514,103 @@ output "repayments_table_name" {
 output "repayment_history_table_name" {
   value = aws_dynamodb_table.repayment_history.name
 }
+
+# Net Worth Assets table
+resource "aws_dynamodb_table" "assets" {
+  name           = "Assets"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "user_id"
+  range_key      = "asset_id"
+
+  attribute {
+    name = "user_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "asset_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "category"
+    type = "S"
+  }
+
+  attribute {
+    name = "type"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "CategoryIndex"
+    hash_key        = "category"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "TypeIndex"
+    hash_key        = "type"
+    projection_type = "ALL"
+  }
+
+  tags = {
+    Name        = "Assets"
+    Environment = var.environment
+    Project     = "finsight"
+  }
+}
+
+# Net Worth Liabilities table
+resource "aws_dynamodb_table" "liabilities" {
+  name           = "Liabilities"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "user_id"
+  range_key      = "liability_id"
+
+  attribute {
+    name = "user_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "liability_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "category"
+    type = "S"
+  }
+
+  attribute {
+    name = "type"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "CategoryIndex"
+    hash_key        = "category"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "TypeIndex"
+    hash_key        = "type"
+    projection_type = "ALL"
+  }
+
+  tags = {
+    Name        = "Liabilities"
+    Environment = var.environment
+    Project     = "finsight"
+  }
+}
+
+output "assets_table_name" {
+  value = aws_dynamodb_table.assets.name
+}
+
+output "liabilities_table_name" {
+  value = aws_dynamodb_table.liabilities.name
+}

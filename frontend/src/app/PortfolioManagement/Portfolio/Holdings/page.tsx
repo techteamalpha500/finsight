@@ -139,6 +139,7 @@ export default function HoldingsPage() {
 	
 	// Loading state for data refresh
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [isInitialLoading, setIsInitialLoading] = useState(true);
 	
 	// Enhanced stock functionality
 	const [stockSearchTerm, setStockSearchTerm] = useState("");
@@ -191,6 +192,8 @@ export default function HoldingsPage() {
 
 	// Load mutual fund and ETF data directly from DynamoDB
 	React.useEffect(() => {
+		let isMounted = true;
+		
 		async function loadMFData() {
 			try {
 				// Preload data on component mount
@@ -198,9 +201,12 @@ export default function HoldingsPage() {
 				const funds = await fetchMutualFundSchemes();
 				// Filter for mutual funds (is_etf = false)
 				const mfData = funds.filter(fund => !fund.isETF);
-				setMfOptions(mfData);
+				if (isMounted) {
+					setMfOptions(mfData);
+				}
 			} catch (error) {
 				// Silent fail - user will see empty results
+				console.warn('Failed to load mutual fund data:', error);
 			}
 		}
 		
@@ -209,31 +215,48 @@ export default function HoldingsPage() {
 				const funds = await fetchMutualFundSchemes();
 				// Filter for ETFs (is_etf = true)
 				const etfData = funds.filter(fund => fund.isETF);
-				setEtfOptions(etfData);
+				if (isMounted) {
+					setEtfOptions(etfData);
+				}
 			} catch (error) {
 				// Silent fail - user will see empty results
+				console.warn('Failed to load ETF data:', error);
 			}
 		}
 		
 		loadMFData();
 		loadETFData();
+		
+		return () => {
+			isMounted = false;
+		};
 	}, []);
 
 	// Load stock data with preloading
 	React.useEffect(() => {
+		let isMounted = true;
+		
 		async function loadStockDataWithPreload() {
 			try {
 				// Preload stock data on component mount
 				await preloadStockData();
 				const stocks = await fetchStockCompanies();
-				setStockOptions(stocks);
+				if (isMounted) {
+					setStockOptions(stocks);
+				}
 			} catch (error) {
 				console.error('Error loading stock data:', error);
 				// Silent fail - set empty array
-				setStockOptions([]);
+				if (isMounted) {
+					setStockOptions([]);
+				}
 			}
 		}
 		loadStockDataWithPreload();
+		
+		return () => {
+			isMounted = false;
+		};
 	}, []);
 
 	// Load holdings from DynamoDB
@@ -281,62 +304,79 @@ export default function HoldingsPage() {
 		loadHoldingsData();
 	}, []);
 
-	// Filter stock options using cached data
-	const filterStockOptions = async (term: string): Promise<void> => {
-		if (term.trim() === "") {
-			setFilteredStockOptions([]);
-			setShowStockDropdown(false);
-		} else {
-			try {
-				// searchStockCompanies now uses cached data automatically
-				const filtered = await searchStockCompanies(term);
-				setFilteredStockOptions(filtered.slice(0, 10));
-				setShowStockDropdown(filtered.length > 0);
-			} catch (error) {
-				console.error('Error searching stocks:', error);
+	// Filter stock options using cached data with memoization
+	const filterStockOptions = useMemo(() => {
+		let timeoutId: NodeJS.Timeout;
+		
+		return async (term: string): Promise<void> => {
+			clearTimeout(timeoutId);
+			
+			if (term.trim() === "") {
 				setFilteredStockOptions([]);
 				setShowStockDropdown(false);
+				return;
 			}
-		}
-	};
-
-	const filterMFOptions = async (term: string): Promise<void> => {
-		try {
-			// Get all funds and filter by ETF status based on selected role
-			const allFunds = await fetchMutualFundSchemes();
 			
-			// Filter funds based on ETF status only
-			let filtered = allFunds.filter(fund => {
-				if (selectedRole === 'Mutual Funds') {
-					// Show only non-ETF funds (is_etf = false)
-					return !fund.isETF;
-				} else if (selectedRole === 'ETF') {
-					// Show only ETF funds (is_etf = true)
-					return fund.isETF;
+			timeoutId = setTimeout(async () => {
+				try {
+					// searchStockCompanies now uses cached data automatically
+					const filtered = await searchStockCompanies(term);
+					setFilteredStockOptions(filtered.slice(0, 10));
+					setShowStockDropdown(filtered.length > 0);
+				} catch (error) {
+					console.error('Error searching stocks:', error);
+					setFilteredStockOptions([]);
+					setShowStockDropdown(false);
 				}
-				return false;
-			});
+			}, 200); // Reduced debounce time for better responsiveness
+		};
+	}, []);
+
+	const filterMFOptions = useMemo(() => {
+		let timeoutId: NodeJS.Timeout;
+		
+		return async (term: string): Promise<void> => {
+			clearTimeout(timeoutId);
 			
-			// Then filter by search term if provided
-			if (term.trim()) {
-				const searchTerm = term.toLowerCase();
-				filtered = filtered.filter(fund => 
-					fund.name.toLowerCase().includes(searchTerm) || 
-					fund.fullName.toLowerCase().includes(searchTerm)
-				);
-			}
-			
-			// Limit results and set state
-			const limitedResults = filtered.slice(0, 10);
-			setFilteredMFOptions(limitedResults);
-			// Only show dropdown if there's a search term
-			setShowMFDropdown(!!(term.trim() && limitedResults.length > 0));
-		} catch (error) {
-			// Clear results on error
-			setFilteredMFOptions([]);
-			setShowMFDropdown(false);
-		}
-	};
+			timeoutId = setTimeout(async () => {
+				try {
+					// Use cached data if available, otherwise fetch
+					const allFunds = mfOptions.length > 0 ? mfOptions : await fetchMutualFundSchemes();
+					
+					// Filter funds based on ETF status only
+					let filtered = allFunds.filter(fund => {
+						if (selectedRole === 'Mutual Funds') {
+							// Show only non-ETF funds (is_etf = false)
+							return !fund.isETF;
+						} else if (selectedRole === 'ETF') {
+							// Show only ETF funds (is_etf = true)
+							return fund.isETF;
+						}
+						return false;
+					});
+					
+					// Then filter by search term if provided
+					if (term.trim()) {
+						const searchTerm = term.toLowerCase();
+						filtered = filtered.filter(fund => 
+							fund.name.toLowerCase().includes(searchTerm) || 
+							fund.fullName.toLowerCase().includes(searchTerm)
+						);
+					}
+					
+					// Limit results and set state
+					const limitedResults = filtered.slice(0, 10);
+					setFilteredMFOptions(limitedResults);
+					// Only show dropdown if there's a search term
+					setShowMFDropdown(!!(term.trim() && limitedResults.length > 0));
+				} catch (error) {
+					// Clear results on error
+					setFilteredMFOptions([]);
+					setShowMFDropdown(false);
+				}
+			}, 200);
+		};
+	}, [mfOptions, selectedRole]);
 
 	const filterETFOptions = async (term: string): Promise<void> => {
 		try {
@@ -477,9 +517,17 @@ export default function HoldingsPage() {
 	// Holdings are already sorted by updated_at in loadHoldingsData, so we just use filteredHoldings
 	const sortedHoldings = filteredHoldings;
 
-	// Calculate totals for KPI cards - using filtered data
-	const totalValue = useMemo(() => (filteredHoldings || []).reduce((s: number, h: HoldingData) => s + computeHoldingValue(h), 0), [filteredHoldings]);
-	const totalInvested = useMemo(() => (filteredHoldings || []).reduce((s: number, h: HoldingData) => s + computeInvestedAmount(h), 0), [filteredHoldings]);
+	// Calculate totals for KPI cards - using filtered data with memoization
+	const totalValue = useMemo(() => {
+		if (!filteredHoldings || filteredHoldings.length === 0) return 0;
+		return filteredHoldings.reduce((s: number, h: HoldingData) => s + computeHoldingValue(h), 0);
+	}, [filteredHoldings]);
+	
+	const totalInvested = useMemo(() => {
+		if (!filteredHoldings || filteredHoldings.length === 0) return 0;
+		return filteredHoldings.reduce((s: number, h: HoldingData) => s + computeInvestedAmount(h), 0);
+	}, [filteredHoldings]);
+	
 	const totalPL = useMemo(() => totalValue - totalInvested, [totalValue, totalInvested]);
 	const totalPLPct = useMemo(() => (totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0), [totalPL, totalInvested]);
 
